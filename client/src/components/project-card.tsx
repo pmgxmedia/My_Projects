@@ -64,7 +64,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-xs text-muted-foreground/60">{project.id}</span>
+                <span className="font-mono text-xs text-muted-foreground/60">{project.handleId}</span>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Eye className="h-3 w-3" />
                   {project.views.toLocaleString()}
