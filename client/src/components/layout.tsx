@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const navLinks = [
     { href: "/", label: "Projects" },
@@ -130,8 +131,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
         </div>
-        <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground">
-          <p>© 2025 PMGXmedia. All rights reserved.</p>
+        <div 
+          className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground select-none"
+          onDoubleClick={() => setShowAdmin(true)}
+        >
+          <div className="flex items-center gap-3">
+            <p>© 2025 PMGXmedia. All rights reserved.</p>
+            <AnimatePresence>
+              {showAdmin && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                >
+                  <Link href="/admin">
+                    <a className="inline-flex items-center px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors font-mono uppercase tracking-wider text-[10px]">
+                      Admin Access
+                    </a>
+                  </Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <div className="flex gap-4 mt-4 md:mt-0">
             <a href="#" className="hover:text-foreground">Privacy Policy</a>
             <a href="#" className="hover:text-foreground">Terms of Service</a>
