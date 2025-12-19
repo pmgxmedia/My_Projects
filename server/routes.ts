@@ -1,13 +1,17 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertEnquirySchema, insertFeedbackSchema, insertAnalyticsEventSchema } from "@shared/schema";
+import { insertProjectSchema, insertEnquirySchema, insertFeedbackSchema, insertAnalyticsEventSchema, insertResumeSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Register object storage routes
+  registerObjectStorageRoutes(app);
+
   // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
@@ -183,6 +187,48 @@ export async function registerRoutes(
     try {
       const feedbackRecords = await storage.getProjectFeedback(req.params.projectId);
       res.json(feedbackRecords);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Resume routes
+  app.get("/api/resumes", async (req, res) => {
+    try {
+      const resumes = await storage.getAllResumes();
+      res.json(resumes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/resumes", async (req, res) => {
+    try {
+      const validated = insertResumeSchema.parse(req.body);
+      const resume = await storage.createResume(validated);
+      res.status(201).json(resume);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/resumes/:id/visibility", async (req, res) => {
+    try {
+      const { isVisible } = req.body;
+      const resume = await storage.updateResumeVisibility(req.params.id, isVisible);
+      res.json(resume);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/resumes/:id", async (req, res) => {
+    try {
+      await storage.deleteResume(req.params.id);
+      res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

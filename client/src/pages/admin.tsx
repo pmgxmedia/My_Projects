@@ -9,17 +9,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject } from "@/lib/api";
+import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
 import type { InsertProject } from "@shared/schema";
 
 function generateHandleId(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const suffix = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   return `proj-${Date.now().toString(36)}-${suffix}`;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 export default function AdminDashboard() {
@@ -44,7 +51,21 @@ export default function AdminDashboard() {
     queryFn: fetchGlobalAnalytics,
   });
 
-  const createMutation = useMutation({
+  const { data: resumes = [], isLoading: resumesLoading } = useQuery({
+    queryKey: ["resumes"],
+    queryFn: fetchResumes,
+  });
+
+  const { uploadFile, isUploading } = useUpload({
+    onSuccess: async (response) => {
+      toast({ title: "Upload Complete", description: "Resume uploaded successfully." });
+    },
+    onError: (error) => {
+      toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const createProjectMutation = useMutation({
     mutationFn: createProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-projects"] });
@@ -57,7 +78,7 @@ export default function AdminDashboard() {
     },
   });
 
-  const updateMutation = useMutation({
+  const updateProjectMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<InsertProject> }) => updateProject(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-projects"] });
@@ -71,7 +92,7 @@ export default function AdminDashboard() {
     },
   });
 
-  const deleteMutation = useMutation({
+  const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-projects"] });
@@ -83,7 +104,7 @@ export default function AdminDashboard() {
     },
   });
 
-  const toggleVisibilityMutation = useMutation({
+  const toggleProjectVisibilityMutation = useMutation({
     mutationFn: ({ id, isHidden }: { id: string; isHidden: boolean }) => updateProject(id, { isHidden }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-projects"] });
@@ -94,6 +115,50 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  const createResumeMutation = useMutation({
+    mutationFn: createResume,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resumes"] });
+      toast({ title: "Resume Added", description: "Resume has been uploaded successfully." });
+    },
+  });
+
+  const toggleResumeVisibilityMutation = useMutation({
+    mutationFn: ({ id, isVisible }: { id: string; isVisible: boolean }) => updateResumeVisibility(id, isVisible),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["resumes"] });
+      toast({ 
+        title: variables.isVisible ? "Resume Visible" : "Resume Hidden", 
+        description: variables.isVisible ? "Resume is now visible." : "Resume is now hidden." 
+      });
+    },
+  });
+
+  const deleteResumeMutation = useMutation({
+    mutationFn: deleteResume,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resumes"] });
+      toast({ title: "Resume Deleted", description: "Resume has been removed." });
+    },
+  });
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const response = await uploadFile(file);
+    if (response) {
+      createResumeMutation.mutate({
+        filename: file.name,
+        objectPath: response.objectPath,
+        fileSize: file.size,
+        contentType: file.type || "application/octet-stream",
+        isVisible: true,
+      });
+    }
+    e.target.value = "";
+  };
 
   const handleCreateProject = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,7 +178,7 @@ export default function AdminDashboard() {
       isHidden: false,
     };
     
-    createMutation.mutate(newProject);
+    createProjectMutation.mutate(newProject);
   };
 
   const handleUpdateProject = (e: React.FormEvent<HTMLFormElement>) => {
@@ -134,7 +199,7 @@ export default function AdminDashboard() {
       previewImage: formData.get("previewImage") as string,
     };
     
-    updateMutation.mutate({ id: editingProject.id, updates });
+    updateProjectMutation.mutate({ id: editingProject.id, updates });
   };
 
   const openEditDialog = (project: any) => {
@@ -160,8 +225,8 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        <div className="grid md:grid-cols-4 gap-6">
           <Card className="bg-card border-white/5">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
@@ -204,6 +269,142 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Resume Management Section */}
+        <Card className="bg-card border-white/5">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Resume Management
+            </CardTitle>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleResumeUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isUploading}
+                data-testid="input-resume-upload"
+              />
+              <Button className="bg-primary hover:bg-primary/90" disabled={isUploading} data-testid="button-upload-resume">
+                <Upload className="mr-2 h-4 w-4" />
+                {isUploading ? "Uploading..." : "Upload Resume"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/5 hover:bg-transparent">
+                  <TableHead>Filename</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Visibility</TableHead>
+                  <TableHead>Uploaded</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      Loading resumes...
+                    </TableCell>
+                  </TableRow>
+                ) : resumes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No resumes uploaded yet. Click "Upload Resume" to add one.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  resumes.map((resume) => (
+                    <TableRow key={resume.id} className="border-white/5 hover:bg-white/5" data-testid={`row-resume-${resume.id}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          {resume.filename}
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatFileSize(resume.fileSize)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={resume.isVisible ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400'}>
+                          {resume.isVisible ? 'Visible' : 'Hidden'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(resume.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0" 
+                            title="View Resume"
+                            onClick={() => window.open(resume.objectPath, '_blank')}
+                            data-testid={`button-view-resume-${resume.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0" 
+                            title="Download Resume"
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = resume.objectPath;
+                              a.download = resume.filename;
+                              a.click();
+                            }}
+                            data-testid={`button-download-resume-${resume.id}`}
+                          >
+                            <Download className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0" 
+                            title={resume.isVisible ? "Hide Resume" : "Show Resume"}
+                            onClick={() => toggleResumeVisibilityMutation.mutate({ id: resume.id, isVisible: !resume.isVisible })}
+                            data-testid={`button-toggle-resume-${resume.id}`}
+                          >
+                            {resume.isVisible ? <EyeOff className="h-4 w-4 text-amber-500" /> : <Eye className="h-4 w-4 text-emerald-500" />}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-destructive/10" title="Delete Resume" data-testid={`button-delete-resume-${resume.id}`}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{resume.filename}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => deleteResumeMutation.mutate(resume.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Project Management Section */}
         <Card className="bg-card border-white/5">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Project Management</CardTitle>
@@ -264,8 +465,8 @@ export default function AdminDashboard() {
                   </div>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-                    <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-project">
-                      {createMutation.isPending ? "Creating..." : "Create Project"}
+                    <Button type="submit" disabled={createProjectMutation.isPending} data-testid="button-submit-project">
+                      {createProjectMutation.isPending ? "Creating..." : "Create Project"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -346,7 +547,7 @@ export default function AdminDashboard() {
                             size="sm" 
                             className="h-8 w-8 p-0" 
                             title={project.isHidden ? "Show Project" : "Hide Project"}
-                            onClick={() => toggleVisibilityMutation.mutate({ id: project.id, isHidden: !project.isHidden })}
+                            onClick={() => toggleProjectVisibilityMutation.mutate({ id: project.id, isHidden: !project.isHidden })}
                             data-testid={`button-toggle-visibility-${project.id}`}
                           >
                             {project.isHidden ? <Eye className="h-4 w-4 text-emerald-500" /> : <EyeOff className="h-4 w-4 text-amber-500" />}
@@ -381,7 +582,7 @@ export default function AdminDashboard() {
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction 
                                   className="bg-destructive hover:bg-destructive/90"
-                                  onClick={() => deleteMutation.mutate(project.id)}
+                                  onClick={() => deleteProjectMutation.mutate(project.id)}
                                 >
                                   Delete
                                 </AlertDialogAction>
@@ -398,6 +599,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Edit Project Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -451,8 +653,8 @@ export default function AdminDashboard() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-edit">
-                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                  <Button type="submit" disabled={updateProjectMutation.isPending} data-testid="button-save-edit">
+                    {updateProjectMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </DialogFooter>
               </form>

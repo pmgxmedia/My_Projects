@@ -115,3 +115,18 @@ export const insertFeedbackSchema = createInsertSchema(feedback, {
 
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
+
+// Resumes Table
+export const resumes = pgTable("resumes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  filename: text("filename").notNull(),
+  objectPath: text("object_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  contentType: text("content_type").notNull(),
+  isVisible: boolean("is_visible").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertResumeSchema = createInsertSchema(resumes).omit({ id: true, createdAt: true });
+export type InsertResume = z.infer<typeof insertResumeSchema>;
+export type Resume = typeof resumes.$inferSelect;

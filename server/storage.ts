@@ -6,6 +6,7 @@ import {
   analyticsEvents,
   enquiries,
   feedback,
+  resumes,
   type User,
   type InsertUser,
   type Project,
@@ -16,6 +17,8 @@ import {
   type InsertEnquiry,
   type Feedback,
   type InsertFeedback,
+  type Resume,
+  type InsertResume,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -56,6 +59,12 @@ export interface IStorage {
   // Feedback methods
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
   getProjectFeedback(projectId: string): Promise<Feedback[]>;
+
+  // Resume methods
+  getAllResumes(): Promise<Resume[]>;
+  createResume(resume: InsertResume): Promise<Resume>;
+  updateResumeVisibility(id: string, isVisible: boolean): Promise<Resume | undefined>;
+  deleteResume(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -211,6 +220,29 @@ export class DatabaseStorage implements IStorage {
       .from(feedback)
       .where(eq(feedback.projectId, projectId))
       .orderBy(desc(feedback.createdAt));
+  }
+
+  // Resume methods
+  async getAllResumes(): Promise<Resume[]> {
+    return await db.select().from(resumes).orderBy(desc(resumes.createdAt));
+  }
+
+  async createResume(insertResume: InsertResume): Promise<Resume> {
+    const [resume] = await db.insert(resumes).values(insertResume).returning();
+    return resume;
+  }
+
+  async updateResumeVisibility(id: string, isVisible: boolean): Promise<Resume | undefined> {
+    const [updated] = await db
+      .update(resumes)
+      .set({ isVisible })
+      .where(eq(resumes.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteResume(id: string): Promise<void> {
+    await db.delete(resumes).where(eq(resumes.id, id));
   }
 }
 

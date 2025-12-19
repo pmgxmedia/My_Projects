@@ -102,3 +102,53 @@ export async function fetchAllEnquiries(): Promise<Enquiry[]> {
   if (!res.ok) throw new Error("Failed to fetch enquiries");
   return res.json();
 }
+
+// Resume APIs
+export interface ResumeData {
+  id: string;
+  filename: string;
+  objectPath: string;
+  fileSize: number;
+  contentType: string;
+  isVisible: boolean;
+  createdAt: string;
+}
+
+export async function fetchResumes(): Promise<ResumeData[]> {
+  const res = await fetch(`${API_BASE}/resumes`);
+  if (!res.ok) throw new Error("Failed to fetch resumes");
+  return res.json();
+}
+
+export async function createResume(data: {
+  filename: string;
+  objectPath: string;
+  fileSize: number;
+  contentType: string;
+  isVisible?: boolean;
+}): Promise<ResumeData> {
+  const res = await fetch(`${API_BASE}/resumes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create resume record");
+  return res.json();
+}
+
+export async function updateResumeVisibility(id: string, isVisible: boolean): Promise<ResumeData> {
+  const res = await fetch(`${API_BASE}/resumes/${id}/visibility`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isVisible }),
+  });
+  if (!res.ok) throw new Error("Failed to update resume visibility");
+  return res.json();
+}
+
+export async function deleteResume(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/resumes/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete resume");
+}
