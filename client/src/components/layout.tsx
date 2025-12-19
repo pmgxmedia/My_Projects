@@ -22,31 +22,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
               <div className="h-8 w-8 bg-primary/10 rounded border border-primary/30 flex items-center justify-center group-hover:border-primary/60 transition-colors">
                 <Terminal className="h-4 w-4 text-primary" />
               </div>
               <span className="font-display font-bold text-lg tracking-tight">
                 PMGXmedia
               </span>
-            </a>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                <a
-                  className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary",
-                    location === link.href
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {link.label}
-                </a>
+              <Link 
+                key={link.href} 
+                href={link.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary",
+                  location === link.href
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {link.label}
               </Link>
             ))}
           </nav>
@@ -81,13 +79,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <nav className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href}>
-                  <a
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </a>
+                <Link 
+                  key={link.href} 
+                  href={link.href}
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
                 </Link>
               ))}
             </nav>
@@ -144,10 +142,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <Link href="/admin">
-                    <a className="inline-flex items-center px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors font-mono uppercase tracking-wider text-[10px]">
+                  <Link href="/admin" className="inline-flex items-center px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors font-mono uppercase tracking-wider text-[10px]">
                       Admin Access
-                    </a>
                   </Link>
                 </motion.div>
               )}

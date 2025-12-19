@@ -14,11 +14,14 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchProjectByHandle, trackAnalyticsEvent } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { BarChart3, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function ProjectDetail() {
   const [match, params] = useRoute("/p/:id");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState("demo");
+  const [showStats, setShowStats] = useState(false);
   
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", params?.id],
@@ -62,10 +65,8 @@ export default function ProjectDetail() {
       {/* Project Header */}
       <div className="bg-card border-b border-white/5 pt-12 pb-8">
         <div className="container mx-auto px-4">
-          <Link href="/">
-            <a className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors" data-testid="link-back">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors" data-testid="link-back">
               <ArrowLeft className="h-4 w-4 mr-2" /> Back to Projects
-            </a>
           </Link>
           
           <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
@@ -96,7 +97,7 @@ export default function ProjectDetail() {
                 <Button 
                   size="lg" 
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => window.open(project.demoUrl, '_blank')}
+                  onClick={() => window.open(project.demoUrl!, '_blank')}
                   data-testid="button-live-demo"
                 >
                   Open Demo <ExternalLink className="ml-2 h-4 w-4" />
@@ -122,10 +123,25 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Live Stats Bar - Sticky */}
-      <div className="sticky top-16 z-30 bg-background/80 backdrop-blur-md border-b border-white/5 py-6">
+      {/* Live Stats Toggle Button */}
+      <div className="sticky top-16 z-30 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="container mx-auto px-4">
-          <StatsPanel />
+          <Collapsible open={showStats} onOpenChange={setShowStats}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full py-3 flex items-center justify-center gap-2 hover:bg-white/5"
+                data-testid="button-toggle-stats"
+              >
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Live Analytics</span>
+                {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pb-4 animate-in slide-in-from-top-2">
+              <StatsPanel />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
 
@@ -145,7 +161,7 @@ export default function ProjectDetail() {
                       <div className="w-3 h-3 rounded-full bg-green-500/80" />
                     </div>
                     <span className="text-xs text-muted-foreground ml-2 font-mono">
-                      {project.demoUrl ? new URL(project.demoUrl).hostname : 'Project Preview'}
+                      {project.demoUrl ? new URL(project.demoUrl!).hostname : 'Project Preview'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -164,7 +180,7 @@ export default function ProjectDetail() {
                           variant="ghost" 
                           size="sm" 
                           className="h-7 w-7 p-0"
-                          onClick={() => window.open(project.demoUrl, '_blank')}
+                          onClick={() => window.open(project.demoUrl!, '_blank')}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
@@ -245,7 +261,7 @@ export default function ProjectDetail() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => window.open(project.demoUrl, '_blank')}
+                          onClick={() => window.open(project.demoUrl!, '_blank')}
                         >
                           <ExternalLink className="h-4 w-4 mr-2" /> New Tab
                         </Button>
@@ -253,7 +269,7 @@ export default function ProjectDetail() {
                     </div>
                     <div className="relative w-full" style={{ paddingTop: '75%' }}>
                       <iframe 
-                        src={project.demoUrl}
+                        src={project.demoUrl!}
                         className="absolute inset-0 w-full h-full border-0"
                         title={`${project.title} Interactive Demo`}
                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
@@ -340,7 +356,7 @@ export default function ProjectDetail() {
                 </div>
                 <div className="flex justify-between border-b border-white/5 pb-2">
                   <dt className="text-muted-foreground">Engagement Score</dt>
-                  <dd className="font-medium text-emerald-500">{project.engagementScore || 85}/100</dd>
+                  <dd className="font-medium text-emerald-500">85/100</dd>
                 </div>
                 <div className="flex justify-between border-b border-white/5 pb-2">
                   <dt className="text-muted-foreground">Demo Available</dt>
@@ -368,7 +384,7 @@ export default function ProjectDetail() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => window.open(project.demoUrl, '_blank')}
+                onClick={() => project.demoUrl && window.open(project.demoUrl, '_blank')}
               >
                 <ExternalLink className="h-4 w-4 mr-2" /> Open in New Tab
               </Button>
