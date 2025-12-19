@@ -2,11 +2,18 @@ import { Layout } from "@/components/layout";
 import { Hero } from "@/components/hero";
 import { ProjectCard } from "@/components/project-card";
 import { ActivityFeed } from "@/components/activity-feed";
-import { projects, activities } from "@/lib/data";
+import { activities } from "@/lib/data";
 import { motion } from "framer-motion";
 import { ArrowRight, Code2, Cpu, Globe } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjects } from "@/lib/api";
 
 export default function Home() {
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
   return (
     <Layout>
       <Hero />
@@ -31,16 +38,22 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map((project, index) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <ProjectCard project={project} />
-              </motion.div>
-            ))}
+            {isLoading ? (
+              <p className="text-muted-foreground col-span-3 text-center py-12">Loading projects...</p>
+            ) : projects.length === 0 ? (
+              <p className="text-muted-foreground col-span-3 text-center py-12">No projects available yet.</p>
+            ) : (
+              projects.map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <ProjectCard project={project} />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>

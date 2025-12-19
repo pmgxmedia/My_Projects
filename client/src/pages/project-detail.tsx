@@ -1,6 +1,5 @@
 import { Layout } from "@/components/layout";
 import { useRoute } from "wouter";
-import { projects } from "@/lib/data";
 import { StatsPanel } from "@/components/stats-panel";
 import { EnquiryForm } from "@/components/enquiry-form";
 import { FeedbackSection } from "@/components/feedback-section";
@@ -10,14 +9,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ExternalLink, Shield, Server, Layers } from "lucide-react";
 import { Link } from "wouter";
 import NotFound from "@/pages/not-found";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjectByHandle, trackAnalyticsEvent } from "@/lib/api";
+import { useEffect } from "react";
 
 export default function ProjectDetail() {
   const [match, params] = useRoute("/p/:id");
   
-  if (!match) return <NotFound />;
+  const { data: project, isLoading } = useQuery({
+    queryKey: ["project", params?.id],
+    queryFn: () => fetchProjectByHandle(params?.id || ""),
+    enabled: !!params?.id,
+  });
 
-  const project = projects.find(p => p.id === params?.id);
-  
+  // Track page view
+  useEffect(() => {
+    if (project) {
+      trackAnalyticsEvent({
+        projectId: project.id,
+        eventType: "view",
+        visitorLocation: "Unknown",
+        metadata: { sessionId: Math.random().toString(36) },
+      });
+    }
+  }, [project]);
+
+  if (!match) return <NotFound />;
+  if (isLoading) return <Layout><div className="py-24 text-center text-muted-foreground">Loading project...</div></Layout>;
   if (!project) return <NotFound />;
 
   return (
@@ -142,7 +160,7 @@ export default function ProjectDetail() {
           {/* Sidebar */}
           <div className="space-y-8">
             <EnquiryForm projectId={project.id} />
-            <FeedbackSection />
+            <FeedbackSection projectId={project.id} />
             
             <div className="bg-card border border-white/5 rounded-lg p-6">
               <h3 className="font-display font-bold text-lg mb-4">Project Metadata</h3>

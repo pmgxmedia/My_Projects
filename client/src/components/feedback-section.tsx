@@ -6,19 +6,35 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, ThumbsUp, Zap, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { createFeedback } from "@/lib/api";
 
-export function FeedbackSection() {
+export function FeedbackSection({ projectId }: { projectId: string }) {
   const [efficiency, setEfficiency] = useState([85]);
   const [clarity, setClarity] = useState([90]);
   const [innovation, setInnovation] = useState([80]);
+  const [notes, setNotes] = useState("");
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
+  const mutation = useMutation({
+    mutationFn: createFeedback,
+    onSuccess: () => {
+      setSubmitted(true);
+      toast({
+        title: "Feedback Submitted",
+        description: "Your professional assessment has been recorded.",
+      });
+    },
+  });
+
   const handleSubmit = () => {
-    setSubmitted(true);
-    toast({
-      title: "Feedback Submitted",
-      description: "Your professional assessment has been recorded.",
+    mutation.mutate({
+      projectId,
+      efficiency: efficiency[0],
+      clarity: clarity[0],
+      innovation: innovation[0],
+      notes: notes || null,
     });
   };
 
@@ -69,11 +85,16 @@ export function FeedbackSection() {
 
         <div className="space-y-2">
           <Label>Additional Notes</Label>
-          <Textarea placeholder="Specific feedback on architecture or UX..." className="resize-none" />
+          <Textarea 
+            placeholder="Specific feedback on architecture or UX..." 
+            className="resize-none" 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
 
-        <Button onClick={handleSubmit} className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-          Submit Assessment
+        <Button onClick={handleSubmit} className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90" disabled={mutation.isPending}>
+          {mutation.isPending ? "Submitting..." : "Submit Assessment"}
         </Button>
       </CardContent>
     </Card>

@@ -9,6 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Send, CheckCircle } from "lucide-react";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { createEnquiry } from "@/lib/api";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -20,6 +22,24 @@ const formSchema = z.object({
 export function EnquiryForm({ projectId }: { projectId: string }) {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  
+  const mutation = useMutation({
+    mutationFn: createEnquiry,
+    onSuccess: () => {
+      setSubmitted(true);
+      toast({
+        title: "Enquiry Sent",
+        description: `We've received your request regarding project ${projectId}.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit enquiry. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,15 +52,10 @@ export function EnquiryForm({ projectId }: { projectId: string }) {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Simulate API call
-    setTimeout(() => {
-      setSubmitted(true);
-      toast({
-        title: "Enquiry Sent",
-        description: `We've received your request regarding project ${projectId}.`,
-      });
-    }, 1000);
+    mutation.mutate({
+      ...values,
+      projectId,
+    });
   }
 
   if (submitted) {
@@ -145,8 +160,8 @@ export function EnquiryForm({ projectId }: { projectId: string }) {
               )}
             />
 
-            <Button type="submit" className="w-full">
-              Send Enquiry <Send className="ml-2 h-4 w-4" />
+            <Button type="submit" className="w-full" disabled={mutation.isPending}>
+              {mutation.isPending ? "Sending..." : "Send Enquiry"} <Send className="ml-2 h-4 w-4" />
             </Button>
           </form>
         </Form>

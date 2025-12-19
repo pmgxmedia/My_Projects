@@ -22,7 +22,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       whileHover={{ y: -8 }}
       transition={{ type: "spring", stiffness: 300 }}
     >
-      <Link href={project.handle}>
+      <Link href={`/p/${project.handleId}`}>
         <a className="block h-full">
           <Card className="h-full bg-card border-white/5 overflow-hidden group hover:border-primary/50 transition-colors flex flex-col">
             <div className="relative h-48 overflow-hidden">

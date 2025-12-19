@@ -91,6 +91,7 @@ export const activities: Activity[] = [
 
 export interface Project {
   id: string;
+  handleId: string;
   handle: string;
   title: string;
   tagline: string;
@@ -104,6 +105,8 @@ export interface Project {
   technologies: string[];
   impact: string[];
   previewImage: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Activity {

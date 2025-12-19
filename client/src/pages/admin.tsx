@@ -1,13 +1,28 @@
-import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Users, MessageSquare, Settings, LogOut } from "lucide-react";
-import { projects } from "@/lib/data";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjects, fetchAllEnquiries, fetchGlobalAnalytics } from "@/lib/api";
 
 export default function AdminDashboard() {
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
+  const { data: enquiries = [], isLoading: enquiriesLoading } = useQuery({
+    queryKey: ["enquiries"],
+    queryFn: fetchAllEnquiries,
+  });
+
+  const { data: analytics } = useQuery({
+    queryKey: ["analytics", "global"],
+    queryFn: fetchGlobalAnalytics,
+  });
+
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       <header className="border-b border-white/10 bg-card/50 backdrop-blur sticky top-0 z-50">
@@ -34,28 +49,28 @@ export default function AdminDashboard() {
               <MessageSquare className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">142</div>
-              <p className="text-xs text-muted-foreground">+12 from last week</p>
+              <div className="text-2xl font-bold">{enquiries.length}</div>
+              <p className="text-xs text-muted-foreground">Client requests tracked</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-white/5">
              <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Visitors</CardTitle>
               <Users className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-2xl font-bold">{analytics?.activeVisitors || 0}</div>
               <p className="text-xs text-muted-foreground">Currently viewing projects</p>
             </CardContent>
           </Card>
           <Card className="bg-card border-white/5">
              <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">System Health</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Views</CardTitle>
               <BarChart3 className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">99.9%</div>
-              <p className="text-xs text-muted-foreground">All systems operational</p>
+              <div className="text-2xl font-bold">{analytics?.totalProjectViews || 0}</div>
+              <p className="text-xs text-muted-foreground">Across all projects</p>
             </CardContent>
           </Card>
         </div>
@@ -76,8 +91,21 @@ export default function AdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map((project) => (
-                  <TableRow key={project.id} className="border-white/5 hover:bg-white/5">
+                {projectsLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      Loading projects...
+                    </TableCell>
+                  </TableRow>
+                ) : projects.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No projects yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  projects.map((project) => (
+                    <TableRow key={project.id} className="border-white/5 hover:bg-white/5">
                     <TableCell className="font-medium">{project.title}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`
@@ -96,7 +124,8 @@ export default function AdminDashboard() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
