@@ -10,6 +10,23 @@ interface ProjectCardProps {
   project: Project;
 }
 
+const industryImages: Record<string, string> = {
+  "FinTech": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800",
+  "SaaS": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800",
+  "HealthTech": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=800",
+  "Logistics": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=800",
+  "E-Commerce": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800",
+  "AI/ML": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+  "default": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800"
+};
+
+function getIndustryImage(industry: string, previewImage: string): string {
+  if (previewImage && !previewImage.includes("placeholder")) {
+    return previewImage;
+  }
+  return industryImages[industry] || industryImages["default"];
+}
+
 export function ProjectCard({ project }: ProjectCardProps) {
   const statusColors = {
     live: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -17,18 +34,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
     concept: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   };
 
+  const imageUrl = getIndustryImage(project.industry, project.previewImage);
+
   return (
     <motion.div
       whileHover={{ y: -8 }}
       transition={{ type: "spring", stiffness: 300 }}
     >
-      <Link href={`/p/${project.handleId}`}>
-        <a className="block h-full">
+      <Link href={`/p/${project.handleId}`} className="block h-full">
           <Card className="h-full bg-card border-white/5 overflow-hidden group hover:border-primary/50 transition-colors flex flex-col">
             <div className="relative h-48 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10 opacity-60" />
               <img 
-                src={project.previewImage} 
+                src={imageUrl} 
                 alt={project.title} 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
@@ -85,7 +103,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </Button>
             </CardFooter>
           </Card>
-        </a>
       </Link>
     </motion.div>
   );
