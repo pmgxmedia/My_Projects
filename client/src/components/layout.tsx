@@ -27,7 +27,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Terminal className="h-4 w-4 text-primary" />
               </div>
               <span className="font-display font-bold text-lg tracking-tight">
-                DEV.PXP
+                PMGXmedia
               </span>
             </a>
           </Link>
@@ -107,7 +107,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <Terminal className="h-5 w-5 text-primary" />
-              <span className="font-display font-bold text-xl">DEV.PXP</span>
+              <span className="font-display font-bold text-xl">PMGXmedia</span>
             </div>
             <p className="text-muted-foreground max-w-sm">
               Engineering digital solutions that prove their value. A platform for verified, measurable, and sellable software assets.
@@ -131,7 +131,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground">
-          <p>© 2025 Dev.PXP. All rights reserved.</p>
+          <p>© 2025 PMGXmedia. All rights reserved.</p>
           <div className="flex gap-4 mt-4 md:mt-0">
             <a href="#" className="hover:text-foreground">Privacy Policy</a>
             <a href="#" className="hover:text-foreground">Terms of Service</a>
