@@ -31,6 +31,8 @@ export const projects = pgTable("projects", {
   impact: text("impact").array().notNull(),
   previewImage: text("preview_image").notNull(),
   isHidden: boolean("is_hidden").notNull().default(false),
+  projectFilesPath: text("project_files_path"),
+  demoUrl: text("demo_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({

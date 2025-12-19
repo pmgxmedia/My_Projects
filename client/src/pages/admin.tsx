@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume } from "@/lib/api";
@@ -35,6 +35,10 @@ export default function AdminDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
+  const [runDialogOpen, setRunDialogOpen] = useState(false);
+  const [runningProject, setRunningProject] = useState<any>(null);
+  const [uploadedProjectFile, setUploadedProjectFile] = useState<{ path: string; name: string } | null>(null);
+  const projectFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["admin-projects"],
@@ -58,7 +62,7 @@ export default function AdminDashboard() {
 
   const { uploadFile, isUploading } = useUpload({
     onSuccess: async (response) => {
-      toast({ title: "Upload Complete", description: "Resume uploaded successfully." });
+      toast({ title: "Upload Complete", description: "File uploaded successfully." });
     },
     onError: (error) => {
       toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
@@ -71,6 +75,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["admin-projects"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setCreateDialogOpen(false);
+      setUploadedProjectFile(null);
       toast({ title: "Project Created", description: "New project has been added to the platform." });
     },
     onError: () => {
@@ -85,6 +90,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setEditDialogOpen(false);
       setEditingProject(null);
+      setUploadedProjectFile(null);
       toast({ title: "Project Updated", description: "Project has been updated successfully." });
     },
     onError: () => {
@@ -160,6 +166,18 @@ export default function AdminDashboard() {
     e.target.value = "";
   };
 
+  const handleProjectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const response = await uploadFile(file);
+    if (response) {
+      setUploadedProjectFile({ path: response.objectPath, name: file.name });
+      toast({ title: "File Uploaded", description: `${file.name} ready to attach to project.` });
+    }
+    e.target.value = "";
+  };
+
   const handleCreateProject = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -176,6 +194,8 @@ export default function AdminDashboard() {
       impact: (formData.get("impact") as string).split("\n").map(t => t.trim()).filter(Boolean),
       previewImage: formData.get("previewImage") as string || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=2000",
       isHidden: false,
+      projectFilesPath: uploadedProjectFile?.path || null,
+      demoUrl: formData.get("demoUrl") as string || null,
     };
     
     createProjectMutation.mutate(newProject);
@@ -197,14 +217,25 @@ export default function AdminDashboard() {
       technologies: (formData.get("technologies") as string).split(",").map(t => t.trim()).filter(Boolean),
       impact: (formData.get("impact") as string).split("\n").map(t => t.trim()).filter(Boolean),
       previewImage: formData.get("previewImage") as string,
+      demoUrl: formData.get("demoUrl") as string || null,
     };
+
+    if (uploadedProjectFile) {
+      updates.projectFilesPath = uploadedProjectFile.path;
+    }
     
     updateProjectMutation.mutate({ id: editingProject.id, updates });
   };
 
   const openEditDialog = (project: any) => {
     setEditingProject(project);
+    setUploadedProjectFile(null);
     setEditDialogOpen(true);
+  };
+
+  const openRunDialog = (project: any) => {
+    setRunningProject(project);
+    setRunDialogOpen(true);
   };
 
   return (
@@ -408,7 +439,7 @@ export default function AdminDashboard() {
         <Card className="bg-card border-white/5">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Project Management</CardTitle>
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <Dialog open={createDialogOpen} onOpenChange={(open) => { setCreateDialogOpen(open); if (!open) setUploadedProjectFile(null); }}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90" data-testid="button-add-project">
                   <Plus className="mr-2 h-4 w-4" /> Add Project
@@ -417,7 +448,7 @@ export default function AdminDashboard() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Project</DialogTitle>
-                  <DialogDescription>Add a new project to your portfolio platform.</DialogDescription>
+                  <DialogDescription>Add a new project with optional code files and demo URL.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateProject} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -463,6 +494,66 @@ export default function AdminDashboard() {
                     <Label htmlFor="previewImage">Preview Image URL</Label>
                     <Input id="previewImage" name="previewImage" placeholder="https://images.unsplash.com/..." data-testid="input-project-image" />
                   </div>
+
+                  {/* Project Files Upload */}
+                  <div className="space-y-2 p-4 border border-dashed border-white/20 rounded-lg bg-white/5">
+                    <Label className="flex items-center gap-2">
+                      <FolderCode className="h-4 w-4" />
+                      Project Code Files (Optional)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Upload a ZIP file containing your project code to attach it to this project.
+                    </p>
+                    {uploadedProjectFile ? (
+                      <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                        <FileText className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm flex-1">{uploadedProjectFile.name}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => setUploadedProjectFile(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          ref={projectFileInputRef}
+                          type="file"
+                          accept=".zip,.tar,.gz,.html,.js,.css"
+                          onChange={handleProjectFileUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          disabled={isUploading}
+                          data-testid="input-project-files"
+                        />
+                        <Button type="button" variant="outline" className="w-full" disabled={isUploading}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          {isUploading ? "Uploading..." : "Upload Project Files"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Demo URL */}
+                  <div className="space-y-2">
+                    <Label htmlFor="demoUrl" className="flex items-center gap-2">
+                      <Play className="h-4 w-4" />
+                      Demo URL (Optional)
+                    </Label>
+                    <Input 
+                      id="demoUrl" 
+                      name="demoUrl" 
+                      placeholder="https://your-demo-app.replit.app" 
+                      data-testid="input-project-demo-url"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter a URL to an external demo or deployed application to run it within the project viewer.
+                    </p>
+                  </div>
+
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
                     <Button type="submit" disabled={createProjectMutation.isPending} data-testid="button-submit-project">
@@ -480,8 +571,8 @@ export default function AdminDashboard() {
                   <TableHead>Project Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Visibility</TableHead>
+                  <TableHead>Demo</TableHead>
                   <TableHead>Views</TableHead>
-                  <TableHead>Enquiries</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -504,9 +595,8 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {project.title}
-                          {project.isHidden && (
-                            <EyeOff className="h-3 w-3 text-muted-foreground" />
-                          )}
+                          {project.isHidden && <EyeOff className="h-3 w-3 text-muted-foreground" />}
+                          {project.projectFilesPath && <span title="Has code files"><FolderCode className="h-3 w-3 text-blue-400" /></span>}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -523,8 +613,16 @@ export default function AdminDashboard() {
                           {project.isHidden ? 'Hidden' : 'Visible'}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {project.demoUrl ? (
+                          <Badge variant="outline" className="border-primary/30 text-primary">
+                            <Play className="h-3 w-3 mr-1" /> Ready
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{project.views?.toLocaleString() || 0}</TableCell>
-                      <TableCell>{project.enquiries || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`/p/${project.handleId}`}>
@@ -555,12 +653,10 @@ export default function AdminDashboard() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-8 w-8 p-0"
-                            title="Run/Preview"
-                            onClick={() => {
-                              window.open(`/p/${project.handleId}`, '_blank');
-                              toast({ title: "Project Launched", description: `Opened ${project.title} in new tab.` });
-                            }}
+                            className={`h-8 w-8 p-0 ${project.demoUrl ? '' : 'opacity-50'}`}
+                            title={project.demoUrl ? "Run Demo" : "No demo configured"}
+                            onClick={() => project.demoUrl && openRunDialog(project)}
+                            disabled={!project.demoUrl}
                             data-testid={`button-run-${project.id}`}
                           >
                             <Play className="h-4 w-4 text-emerald-500" />
@@ -575,7 +671,7 @@ export default function AdminDashboard() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Project</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "{project.title}"? This action cannot be undone and will remove all associated analytics, enquiries, and feedback.
+                                  Are you sure you want to delete "{project.title}"? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -600,11 +696,11 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Edit Project Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) { setEditingProject(null); setUploadedProjectFile(null); } }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Project</DialogTitle>
-              <DialogDescription>Update project details.</DialogDescription>
+              <DialogDescription>Update project details including demo URL and code files.</DialogDescription>
             </DialogHeader>
             {editingProject && (
               <form onSubmit={handleUpdateProject} className="space-y-4">
@@ -651,6 +747,65 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit-previewImage">Preview Image URL</Label>
                   <Input id="edit-previewImage" name="previewImage" defaultValue={editingProject.previewImage} data-testid="input-edit-image" />
                 </div>
+
+                {/* Project Files Upload */}
+                <div className="space-y-2 p-4 border border-dashed border-white/20 rounded-lg bg-white/5">
+                  <Label className="flex items-center gap-2">
+                    <FolderCode className="h-4 w-4" />
+                    Project Code Files
+                  </Label>
+                  {editingProject.projectFilesPath && !uploadedProjectFile && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded mb-2">
+                      <FileText className="h-4 w-4 text-blue-400" />
+                      <span className="text-sm flex-1">Existing file attached</span>
+                    </div>
+                  )}
+                  {uploadedProjectFile ? (
+                    <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                      <FileText className="h-4 w-4 text-emerald-500" />
+                      <span className="text-sm flex-1">{uploadedProjectFile.name}</span>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => setUploadedProjectFile(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".zip,.tar,.gz,.html,.js,.css"
+                        onChange={handleProjectFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={isUploading}
+                      />
+                      <Button type="button" variant="outline" className="w-full" disabled={isUploading}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        {isUploading ? "Uploading..." : "Upload New Project Files"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Demo URL */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-demoUrl" className="flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    Demo URL
+                  </Label>
+                  <Input 
+                    id="edit-demoUrl" 
+                    name="demoUrl" 
+                    defaultValue={editingProject.demoUrl || ""}
+                    placeholder="https://your-demo-app.replit.app" 
+                    data-testid="input-edit-demo-url"
+                  />
+                </div>
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
                   <Button type="submit" disabled={updateProjectMutation.isPending} data-testid="button-save-edit">
@@ -659,6 +814,38 @@ export default function AdminDashboard() {
                 </DialogFooter>
               </form>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Run Demo Dialog */}
+        <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
+          <DialogContent className="max-w-5xl h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5 text-emerald-500" />
+                Running: {runningProject?.title}
+              </DialogTitle>
+              <DialogDescription>
+                Live demo of the project application.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 h-full min-h-[500px] bg-black/20 rounded-lg overflow-hidden">
+              {runningProject?.demoUrl && (
+                <iframe 
+                  src={runningProject.demoUrl}
+                  className="w-full h-full border-0"
+                  title={`${runningProject.title} Demo`}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => window.open(runningProject?.demoUrl, '_blank')}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open in New Tab
+              </Button>
+              <Button onClick={() => setRunDialogOpen(false)}>Close</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </main>
