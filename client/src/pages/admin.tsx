@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume } from "@/lib/api";
@@ -38,6 +38,7 @@ export default function AdminDashboard() {
   const [runDialogOpen, setRunDialogOpen] = useState(false);
   const [runningProject, setRunningProject] = useState<any>(null);
   const [uploadedProjectFile, setUploadedProjectFile] = useState<{ path: string; name: string } | null>(null);
+  const [uploadedPreviewImage, setUploadedPreviewImage] = useState<{ path: string; name: string } | null>(null);
   const projectFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -76,6 +77,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setCreateDialogOpen(false);
       setUploadedProjectFile(null);
+      setUploadedPreviewImage(null);
       toast({ title: "Project Created", description: "New project has been added to the platform." });
     },
     onError: () => {
@@ -91,6 +93,7 @@ export default function AdminDashboard() {
       setEditDialogOpen(false);
       setEditingProject(null);
       setUploadedProjectFile(null);
+      setUploadedPreviewImage(null);
       toast({ title: "Project Updated", description: "Project has been updated successfully." });
     },
     onError: () => {
@@ -178,6 +181,18 @@ export default function AdminDashboard() {
     e.target.value = "";
   };
 
+  const handlePreviewImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const response = await uploadFile(file);
+    if (response) {
+      setUploadedPreviewImage({ path: response.objectPath, name: file.name });
+      toast({ title: "Image Uploaded", description: `${file.name} ready to use as preview.` });
+    }
+    e.target.value = "";
+  };
+
   const handleCreateProject = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -192,7 +207,7 @@ export default function AdminDashboard() {
       description: formData.get("description") as string,
       technologies: (formData.get("technologies") as string).split(",").map(t => t.trim()).filter(Boolean),
       impact: (formData.get("impact") as string).split("\n").map(t => t.trim()).filter(Boolean),
-      previewImage: formData.get("previewImage") as string || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=2000",
+      previewImage: uploadedPreviewImage?.path || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=2000",
       isHidden: false,
       projectFilesPath: uploadedProjectFile?.path || null,
       demoUrl: formData.get("demoUrl") as string || null,
@@ -216,9 +231,12 @@ export default function AdminDashboard() {
       description: formData.get("description") as string,
       technologies: (formData.get("technologies") as string).split(",").map(t => t.trim()).filter(Boolean),
       impact: (formData.get("impact") as string).split("\n").map(t => t.trim()).filter(Boolean),
-      previewImage: formData.get("previewImage") as string,
       demoUrl: formData.get("demoUrl") as string || null,
     };
+
+    if (uploadedPreviewImage) {
+      updates.previewImage = uploadedPreviewImage.path;
+    }
 
     if (uploadedProjectFile) {
       updates.projectFilesPath = uploadedProjectFile.path;
@@ -230,6 +248,7 @@ export default function AdminDashboard() {
   const openEditDialog = (project: any) => {
     setEditingProject(project);
     setUploadedProjectFile(null);
+    setUploadedPreviewImage(null);
     setEditDialogOpen(true);
   };
 
@@ -439,7 +458,7 @@ export default function AdminDashboard() {
         <Card className="bg-card border-white/5">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Project Management</CardTitle>
-            <Dialog open={createDialogOpen} onOpenChange={(open) => { setCreateDialogOpen(open); if (!open) setUploadedProjectFile(null); }}>
+            <Dialog open={createDialogOpen} onOpenChange={(open) => { setCreateDialogOpen(open); if (!open) { setUploadedProjectFile(null); setUploadedPreviewImage(null); } }}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90" data-testid="button-add-project">
                   <Plus className="mr-2 h-4 w-4" /> Add Project
@@ -490,9 +509,45 @@ export default function AdminDashboard() {
                     <Label htmlFor="impact">Impact Metrics (one per line)</Label>
                     <Textarea id="impact" name="impact" placeholder="Increased efficiency by 40%&#10;Reduced costs by 25%&#10;Processed 1M+ transactions" rows={3} required data-testid="input-project-impact" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="previewImage">Preview Image URL</Label>
-                    <Input id="previewImage" name="previewImage" placeholder="https://images.unsplash.com/..." data-testid="input-project-image" />
+                  {/* Preview Image Upload */}
+                  <div className="space-y-2 p-4 border border-dashed border-white/20 rounded-lg bg-white/5">
+                    <Label className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      Preview Image
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Upload an image file from your device to use as the project preview.
+                    </p>
+                    {uploadedPreviewImage ? (
+                      <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                        <ImageIcon className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm flex-1">{uploadedPreviewImage.name}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => setUploadedPreviewImage(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePreviewImageUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          disabled={isUploading}
+                          data-testid="input-preview-image"
+                        />
+                        <Button type="button" variant="outline" className="w-full" disabled={isUploading}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          {isUploading ? "Uploading..." : "Upload Preview Image"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Project Files Upload */}
@@ -743,9 +798,47 @@ export default function AdminDashboard() {
                   <Label htmlFor="edit-impact">Impact Metrics (one per line)</Label>
                   <Textarea id="edit-impact" name="impact" defaultValue={editingProject.impact?.join("\n")} rows={3} required data-testid="input-edit-impact" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-previewImage">Preview Image URL</Label>
-                  <Input id="edit-previewImage" name="previewImage" defaultValue={editingProject.previewImage} data-testid="input-edit-image" />
+                {/* Preview Image Upload */}
+                <div className="space-y-2 p-4 border border-dashed border-white/20 rounded-lg bg-white/5">
+                  <Label className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Preview Image
+                  </Label>
+                  {editingProject.previewImage && !uploadedPreviewImage && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded mb-2">
+                      <ImageIcon className="h-4 w-4 text-blue-400" />
+                      <span className="text-sm flex-1 truncate">Current: {editingProject.previewImage.split('/').pop()}</span>
+                    </div>
+                  )}
+                  {uploadedPreviewImage ? (
+                    <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                      <ImageIcon className="h-4 w-4 text-emerald-500" />
+                      <span className="text-sm flex-1">{uploadedPreviewImage.name}</span>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => setUploadedPreviewImage(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePreviewImageUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={isUploading}
+                      />
+                      <Button type="button" variant="outline" className="w-full" disabled={isUploading}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        {isUploading ? "Uploading..." : "Upload New Preview Image"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Project Files Upload */}
