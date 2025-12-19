@@ -1,11 +1,52 @@
-import type { Project, Enquiry, Feedback, InsertEnquiry, InsertFeedback } from "@shared/schema";
+import type { Project, Enquiry, Feedback, InsertEnquiry, InsertFeedback, InsertProject } from "@shared/schema";
 
 const API_BASE = "/api";
 
-export async function fetchProjects(): Promise<Project[]> {
+export interface EnrichedProject extends Project {
+  views: number;
+  enquiries: number;
+  engagementScore: number;
+  avgSession: string;
+  handle: string;
+}
+
+export async function fetchProjects(): Promise<EnrichedProject[]> {
   const res = await fetch(`${API_BASE}/projects`);
   if (!res.ok) throw new Error("Failed to fetch projects");
   return res.json();
+}
+
+export async function fetchAllProjects(): Promise<EnrichedProject[]> {
+  const res = await fetch(`${API_BASE}/projects?includeHidden=true`);
+  if (!res.ok) throw new Error("Failed to fetch projects");
+  return res.json();
+}
+
+export async function createProject(project: InsertProject): Promise<Project> {
+  const res = await fetch(`${API_BASE}/projects`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(project),
+  });
+  if (!res.ok) throw new Error("Failed to create project");
+  return res.json();
+}
+
+export async function updateProject(id: string, updates: Partial<InsertProject>): Promise<Project> {
+  const res = await fetch(`${API_BASE}/projects/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Failed to update project");
+  return res.json();
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/projects/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete project");
 }
 
 export async function fetchProjectByHandle(handleId: string): Promise<Project> {

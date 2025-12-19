@@ -11,7 +11,8 @@ export async function registerRoutes(
   // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const projects = await storage.getAllProjects();
+      const includeHidden = req.query.includeHidden === 'true';
+      const projects = await storage.getAllProjects(includeHidden);
       
       // Enrich projects with analytics
       const enrichedProjects = await Promise.all(

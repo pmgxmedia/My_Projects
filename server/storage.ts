@@ -27,7 +27,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Project methods
-  getAllProjects(): Promise<Project[]>;
+  getAllProjects(includeHidden?: boolean): Promise<Project[]>;
   getProjectByHandleId(handleId: string): Promise<Project | undefined>;
   getProjectById(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
@@ -76,8 +76,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project methods
-  async getAllProjects(): Promise<Project[]> {
-    return await db.select().from(projects).orderBy(desc(projects.createdAt));
+  async getAllProjects(includeHidden: boolean = false): Promise<Project[]> {
+    if (includeHidden) {
+      return await db.select().from(projects).orderBy(desc(projects.createdAt));
+    }
+    return await db.select().from(projects).where(eq(projects.isHidden, false)).orderBy(desc(projects.createdAt));
   }
 
   async getProjectByHandleId(handleId: string): Promise<Project | undefined> {

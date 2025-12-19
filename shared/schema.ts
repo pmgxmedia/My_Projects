@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -30,6 +30,7 @@ export const projects = pgTable("projects", {
   technologies: text("technologies").array().notNull(),
   impact: text("impact").array().notNull(),
   previewImage: text("preview_image").notNull(),
+  isHidden: boolean("is_hidden").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -40,6 +41,7 @@ export const insertProjectSchema = createInsertSchema(projects, {
   status: z.enum(["live", "demo", "concept"]),
   technologies: z.array(z.string()).min(1),
   impact: z.array(z.string()).min(1),
+  isHidden: z.boolean().optional(),
 }).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const selectProjectSchema = createSelectSchema(projects);
