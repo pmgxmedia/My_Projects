@@ -103,6 +103,15 @@ export async function fetchAllEnquiries(): Promise<Enquiry[]> {
   return res.json();
 }
 
+export async function updateEnquiryStatus(id: string, status: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/enquiries/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error("Failed to update enquiry status");
+}
+
 // Resume APIs
 export interface ResumeData {
   id: string;

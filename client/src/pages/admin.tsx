@@ -9,10 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting } from "@/lib/api";
+import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting, updateEnquiryStatus } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import type { InsertProject } from "@shared/schema";
@@ -39,6 +39,8 @@ export default function AdminDashboard() {
   const [runningProject, setRunningProject] = useState<any>(null);
   const [uploadedProjectFile, setUploadedProjectFile] = useState<{ path: string; name: string } | null>(null);
   const [uploadedPreviewImage, setUploadedPreviewImage] = useState<{ path: string; name: string } | null>(null);
+  const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
+  const [enquiryDialogOpen, setEnquiryDialogOpen] = useState(false);
   const projectFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -167,6 +169,51 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: "Failed to update setting.", variant: "destructive" });
     },
   });
+
+  const updateEnquiryStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateEnquiryStatus(id, status),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["enquiries"] });
+      toast({ 
+        title: "Status Updated", 
+        description: `Enquiry marked as ${variables.status}.` 
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update enquiry status.", variant: "destructive" });
+    },
+  });
+
+  const openEnquiryDialog = (enquiry: any) => {
+    setSelectedEnquiry(enquiry);
+    setEnquiryDialogOpen(true);
+  };
+
+  const getEnquiryTypeLabel = (type: string) => {
+    switch (type) {
+      case 'similar': return 'Request Similar';
+      case 'license': return 'License Project';
+      case 'custom': return 'Custom Request';
+      default: return type;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="border-amber-500/30 text-amber-400"><Clock className="mr-1 h-3 w-3" />Pending</Badge>;
+      case 'reviewed':
+        return <Badge variant="outline" className="border-blue-500/30 text-blue-400"><Eye className="mr-1 h-3 w-3" />Reviewed</Badge>;
+      case 'responded':
+        return <Badge variant="outline" className="border-emerald-500/30 text-emerald-400"><CheckCircle className="mr-1 h-3 w-3" />Responded</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const pendingEnquiries = enquiries.filter((e: any) => e.status === 'pending');
+  const reviewedEnquiries = enquiries.filter((e: any) => e.status === 'reviewed');
+  const respondedEnquiries = enquiries.filter((e: any) => e.status === 'responded');
 
   const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -392,6 +439,145 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Inbox Section */}
+        <Card className="bg-card border-white/5">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Inbox className="h-5 w-5" />
+              Inbox
+              {pendingEnquiries.length > 0 && (
+                <Badge variant="destructive" className="ml-2">{pendingEnquiries.length} new</Badge>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><Clock className="h-3 w-3 text-amber-400" />{pendingEnquiries.length}</span>
+              <span className="flex items-center gap-1"><Eye className="h-3 w-3 text-blue-400" />{reviewedEnquiries.length}</span>
+              <span className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-emerald-400" />{respondedEnquiries.length}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {enquiries.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Inbox className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p>No messages yet</p>
+                <p className="text-sm">Enquiries from "Request Project", "Start Conversation" and other forms will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {enquiries.map((enquiry: any) => (
+                  <div 
+                    key={enquiry.id}
+                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                      enquiry.status === 'pending' 
+                        ? 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10' 
+                        : 'bg-card border-white/10 hover:bg-white/5'
+                    }`}
+                    onClick={() => openEnquiryDialog(enquiry)}
+                    data-testid={`enquiry-row-${enquiry.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium truncate">{enquiry.name}</span>
+                          {getStatusBadge(enquiry.status)}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{enquiry.email}</span>
+                          <Badge variant="outline" className="text-xs">{getEnquiryTypeLabel(enquiry.type)}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{enquiry.message}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(enquiry.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Enquiry Detail Dialog */}
+        <Dialog open={enquiryDialogOpen} onOpenChange={setEnquiryDialogOpen}>
+          <DialogContent className="max-w-lg">
+            {selectedEnquiry && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    Message from {selectedEnquiry.name}
+                  </DialogTitle>
+                  <DialogDescription className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {selectedEnquiry.email}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{getEnquiryTypeLabel(selectedEnquiry.type)}</Badge>
+                    {getStatusBadge(selectedEnquiry.status)}
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(selectedEnquiry.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  {selectedEnquiry.projectId && (
+                    <div className="p-3 rounded bg-card border border-white/10">
+                      <p className="text-xs text-muted-foreground mb-1">Related Project</p>
+                      <p className="text-sm font-medium">{selectedEnquiry.projectId}</p>
+                    </div>
+                  )}
+                  
+                  <div className="p-4 rounded-lg bg-muted/30 border border-white/10">
+                    <p className="text-sm whitespace-pre-wrap">{selectedEnquiry.message}</p>
+                  </div>
+                </div>
+
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <div className="flex gap-2 flex-1">
+                    {selectedEnquiry.status === 'pending' && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          updateEnquiryStatusMutation.mutate({ id: selectedEnquiry.id, status: 'reviewed' });
+                          setSelectedEnquiry({ ...selectedEnquiry, status: 'reviewed' });
+                        }}
+                        data-testid="button-mark-reviewed"
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Mark Reviewed
+                      </Button>
+                    )}
+                    {selectedEnquiry.status !== 'responded' && (
+                      <Button 
+                        variant="outline"
+                        className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                        onClick={() => {
+                          updateEnquiryStatusMutation.mutate({ id: selectedEnquiry.id, status: 'responded' });
+                          setSelectedEnquiry({ ...selectedEnquiry, status: 'responded' });
+                        }}
+                        data-testid="button-mark-responded"
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Mark Responded
+                      </Button>
+                    )}
+                  </div>
+                  <Button asChild>
+                    <a href={`mailto:${selectedEnquiry.email}?subject=Re: Your inquiry on PMGXmedia`}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Reply via Email
+                    </a>
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Resume Management Section */}
         <Card className="bg-card border-white/5">
