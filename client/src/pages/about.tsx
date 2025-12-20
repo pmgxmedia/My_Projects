@@ -18,7 +18,7 @@ import {
   Heart
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchResumes, type ResumeData } from "@/lib/api";
+import { fetchResumes, fetchSiteSettings, type ResumeData } from "@/lib/api";
 
 const skills = {
   languages: ["TypeScript", "JavaScript", "Python", "SQL", "Go"],
@@ -59,6 +59,11 @@ export default function About() {
   const { data: resumes = [] } = useQuery({
     queryKey: ["public-resumes"],
     queryFn: fetchResumes,
+  });
+
+  const { data: siteSettings = {} } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: fetchSiteSettings,
   });
 
   const visibleResume = resumes.find((r: ResumeData) => r.isVisible);
@@ -120,8 +125,16 @@ export default function About() {
             >
               <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center">
                 <div className="text-center p-8">
-                  <div className="h-32 w-32 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6">
-                    <Code2 className="h-16 w-16 text-primary" />
+                  <div className="h-32 w-32 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6 overflow-hidden">
+                    {siteSettings.profileImage ? (
+                      <img 
+                        src={siteSettings.profileImage} 
+                        alt="PMGXmedia" 
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Code2 className="h-16 w-16 text-primary" />
+                    )}
                   </div>
                   <h3 className="font-display text-2xl font-bold mb-2">PMGXmedia</h3>
                   <p className="text-muted-foreground">Software Engineer</p>
