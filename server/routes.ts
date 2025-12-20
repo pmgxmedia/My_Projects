@@ -127,6 +127,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/projects/:projectId/stats", async (req, res) => {
+    try {
+      const analytics = await storage.getProjectAnalytics(req.params.projectId);
+      const weeklyData = await storage.getProjectWeeklyStats(req.params.projectId);
+      res.json({
+        totalViews: analytics.totalViews,
+        totalEnquiries: analytics.totalEnquiries,
+        engagementScore: analytics.avgEngagement,
+        weeklyData,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Enquiry routes
   app.post("/api/enquiries", async (req, res) => {
     try {

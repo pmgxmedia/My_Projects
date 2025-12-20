@@ -182,7 +182,7 @@ export default function ProjectDetail() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pb-4 animate-in slide-in-from-top-2">
-              <StatsPanel />
+              <StatsPanel projectId={project.id} />
             </CollapsibleContent>
           </Collapsible>
         </div>
