@@ -2,18 +2,27 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { createEnquiry } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  Code2, 
   Smartphone, 
   Globe, 
   Database, 
   Cloud, 
   Shield, 
   Zap, 
-  TrendingUp,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  MessageCircle,
+  Send
 } from "lucide-react";
 
 const solutions = [
@@ -69,6 +78,43 @@ const process = [
 ];
 
 export default function Solutions() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const submitEnquiryMutation = useMutation({
+    mutationFn: createEnquiry,
+    onSuccess: () => {
+      toast({
+        title: "Message Sent!",
+        description: "Thanks for reaching out. I'll get back to you within 24-48 hours.",
+      });
+      setDialogOpen(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const projectType = formData.get("projectType") as string;
+    const message = formData.get("message") as string;
+
+    submitEnquiryMutation.mutate({
+      name,
+      email,
+      type: "custom",
+      message: `[${projectType}] ${message}`,
+    });
+  };
+
   return (
     <Layout>
       <section className="py-20 bg-gradient-to-b from-background to-card">
@@ -165,11 +211,87 @@ export default function Solutions() {
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
             Let's discuss your project requirements and explore how we can work together.
           </p>
-          <Button size="lg" className="font-medium" data-testid="button-solutions-cta">
+          <Button 
+            size="lg" 
+            className="font-medium" 
+            onClick={() => setDialogOpen(true)}
+            data-testid="button-solutions-cta"
+          >
             Start a Conversation <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </section>
+
+      {/* Contact Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Start a Conversation
+            </DialogTitle>
+            <DialogDescription>
+              Tell me about your project and I'll get back to you within 24-48 hours.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" placeholder="Your name" required data-testid="input-contact-name" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" placeholder="you@example.com" required data-testid="input-contact-email" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="projectType">Project Type</Label>
+              <Select name="projectType" defaultValue="web">
+                <SelectTrigger data-testid="select-project-type">
+                  <SelectValue placeholder="Select project type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="web">Web Application</SelectItem>
+                  <SelectItem value="mobile">Mobile Development</SelectItem>
+                  <SelectItem value="data">Data Solutions</SelectItem>
+                  <SelectItem value="cloud">Cloud Infrastructure</SelectItem>
+                  <SelectItem value="security">Security & Auth</SelectItem>
+                  <SelectItem value="performance">Performance Optimization</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="message">Message</Label>
+              <Textarea 
+                id="message" 
+                name="message" 
+                placeholder="Tell me about your project, goals, and timeline..." 
+                rows={4}
+                required
+                data-testid="input-contact-message"
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitEnquiryMutation.isPending} data-testid="button-send-message">
+                {submitEnquiryMutation.isPending ? "Sending..." : (
+                  <>
+                    Send Message <Send className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
