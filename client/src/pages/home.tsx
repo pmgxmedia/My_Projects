@@ -6,7 +6,7 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { motion } from "framer-motion";
 import { ArrowRight, Code2, Cpu, Globe, Send, CheckCircle, BookOpen, FileCode, Shield, Zap, Database, GitBranch } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchProjects, createEnquiry, fetchSiteSettings } from "@/lib/api";
+import { fetchProjects, createEnquiry, fetchSiteSettings, fetchPlatformStats } from "@/lib/api";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,12 @@ export default function Home() {
   const { data: siteSettings = {} } = useQuery({
     queryKey: ["site-settings"],
     queryFn: fetchSiteSettings,
+  });
+
+  const { data: platformStats } = useQuery({
+    queryKey: ["platform-stats"],
+    queryFn: fetchPlatformStats,
+    refetchInterval: 30000,
   });
 
   const requestMutation = useMutation({
@@ -193,12 +199,28 @@ export default function Home() {
             </h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-card border border-white/5">
-                <div className="text-4xl font-bold font-display text-primary">45k+</div>
-                <div className="text-sm text-muted-foreground">Total Lines of Code<br/>Verified & Production Ready</div>
+                <div className="text-4xl font-bold font-display text-primary">
+                  {platformStats?.totalViews?.toLocaleString() || "0"}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Project Views<br/>Across All Assets</div>
               </div>
               <div className="flex items-center gap-4 p-4 rounded-lg bg-card border border-white/5">
-                <div className="text-4xl font-bold font-display text-secondary">99.9%</div>
-                <div className="text-sm text-muted-foreground">Uptime Across<br/>All Deployed Systems</div>
+                <div className="text-4xl font-bold font-display text-secondary">
+                  {platformStats?.totalProjects || "0"}
+                </div>
+                <div className="text-sm text-muted-foreground">Live Projects<br/>Production Ready</div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-card border border-white/5">
+                <div className="text-4xl font-bold font-display text-emerald-500">
+                  {platformStats?.totalEnquiries || "0"}
+                </div>
+                <div className="text-sm text-muted-foreground">Client Enquiries<br/>Active Conversations</div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-card border border-white/5">
+                <div className="text-4xl font-bold font-display text-purple-400">
+                  {platformStats?.avgEngagement || "0"}/100
+                </div>
+                <div className="text-sm text-muted-foreground">Avg Engagement<br/>Platform Score</div>
               </div>
             </div>
           </div>

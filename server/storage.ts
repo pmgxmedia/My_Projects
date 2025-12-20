@@ -53,6 +53,7 @@ export interface IStorage {
   }>;
   getProjectWeeklyStats(projectId: string): Promise<{ day: string; views: number }[]>;
   getRecentActivity(): Promise<{ id: string; text: string; time: string; type: string }[]>;
+  getPlatformStats(): Promise<{ totalViews: number; totalProjects: number; totalEnquiries: number; avgEngagement: number }>;
 
   // Enquiry methods
   createEnquiry(enquiry: InsertEnquiry): Promise<Enquiry>;
@@ -379,6 +380,42 @@ export class DatabaseStorage implements IStorage {
     activities.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return activities.slice(0, 5).map(({ date, ...rest }) => rest);
+  }
+
+  async getPlatformStats(): Promise<{ totalViews: number; totalProjects: number; totalEnquiries: number; avgEngagement: number }> {
+    const [viewsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(analyticsEvents)
+      .where(eq(analyticsEvents.eventType, "view"));
+
+    const [projectsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(projects)
+      .where(eq(projects.isVisible, true));
+
+    const [enquiriesResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(enquiries);
+
+    const allProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.isVisible, true));
+    
+    let totalEngagement = 0;
+    let projectCount = 0;
+    
+    for (const project of allProjects) {
+      const analytics = await this.getProjectAnalytics(project.id);
+      totalEngagement += analytics.avgEngagement;
+      projectCount++;
+    }
+
+    const avgEngagement = projectCount > 0 ? Math.round(totalEngagement / projectCount) : 0;
+
+    return {
+      totalViews: viewsResult?.count || 0,
+      totalProjects: projectsResult?.count || 0,
+      totalEnquiries: enquiriesResult?.count || 0,
+      avgEngagement,
+    };
   }
 
   // Enquiry methods

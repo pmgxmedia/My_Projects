@@ -75,6 +75,19 @@ export async function createFeedback(feedback: InsertFeedback): Promise<Feedback
   return res.json();
 }
 
+export interface PlatformStats {
+  totalViews: number;
+  totalProjects: number;
+  totalEnquiries: number;
+  avgEngagement: number;
+}
+
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  const res = await fetch(`${API_BASE}/analytics/platform-stats`);
+  if (!res.ok) throw new Error("Failed to fetch platform stats");
+  return res.json();
+}
+
 export async function trackAnalyticsEvent(event: {
   projectId?: string | null;
   eventType: string;
