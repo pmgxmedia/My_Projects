@@ -154,10 +154,50 @@ export class DatabaseStorage implements IStorage {
       .from(enquiries)
       .where(eq(enquiries.projectId, projectId));
 
+    const [feedbackResult] = await db
+      .select({ 
+        count: sql<number>`count(*)::int`,
+        avgEfficiency: sql<number>`coalesce(avg(efficiency), 0)::float`,
+        avgClarity: sql<number>`coalesce(avg(clarity), 0)::float`,
+        avgInnovation: sql<number>`coalesce(avg(innovation), 0)::float`
+      })
+      .from(feedback)
+      .where(eq(feedback.projectId, projectId));
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [recentViewsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.projectId, projectId),
+          eq(analyticsEvents.eventType, "view"),
+          gte(analyticsEvents.createdAt, sevenDaysAgo)
+        )
+      );
+
+    const totalViews = viewsResult?.count || 0;
+    const totalEnquiries = enquiriesResult?.count || 0;
+    const feedbackCount = feedbackResult?.count || 0;
+    const recentViews = recentViewsResult?.count || 0;
+    
+    const avgFeedbackScore = feedbackCount > 0 
+      ? ((feedbackResult.avgEfficiency + feedbackResult.avgClarity + feedbackResult.avgInnovation) / 3) * 10
+      : 0;
+
+    let engagementScore = 30;
+    
+    if (totalViews > 0) engagementScore += Math.min(20, Math.log10(totalViews + 1) * 8);
+    if (totalEnquiries > 0) engagementScore += Math.min(20, totalEnquiries * 4);
+    if (feedbackCount > 0) engagementScore += Math.min(15, avgFeedbackScore * 1.5);
+    if (recentViews > 0) engagementScore += Math.min(15, Math.log10(recentViews + 1) * 6);
+    
+    engagementScore = Math.round(Math.min(100, Math.max(0, engagementScore)));
+
     return {
-      totalViews: viewsResult?.count || 0,
-      totalEnquiries: enquiriesResult?.count || 0,
-      avgEngagement: 85, // Placeholder calculation
+      totalViews,
+      totalEnquiries,
+      avgEngagement: engagementScore,
     };
   }
 
