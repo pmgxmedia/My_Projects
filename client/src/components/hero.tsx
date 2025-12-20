@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, TrendingUp, Megaphone, X } from "lucide-react";
 import bgImage from "@assets/generated_images/dark_abstract_executive_tech_background_with_subtle_grid.png";
 import { useState } from "react";
+import { Link } from "wouter";
 
 interface HeroProps {
   heroTitle?: string;
@@ -99,12 +100,24 @@ export function Hero({ heroTitle, heroSubtitle, announcementText }: HeroProps) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
-          <Button size="lg" className="h-14 px-8 text-base bg-white text-black hover:bg-gray-200 border-none shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all">
+          <Button 
+            size="lg" 
+            className="h-14 px-8 text-base bg-white text-black hover:bg-gray-200 border-none shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all"
+            onClick={() => {
+              const projectsSection = document.getElementById('projects-section');
+              if (projectsSection) {
+                projectsSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            data-testid="button-explore-projects"
+          >
             Explore Live Projects
           </Button>
-          <Button size="lg" variant="outline" className="h-14 px-8 text-base border-white/20 hover:bg-white/5 backdrop-blur-sm">
-            Request a Solution <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <Link href="/solutions">
+            <Button size="lg" variant="outline" className="h-14 px-8 text-base border-white/20 hover:bg-white/5 backdrop-blur-sm" data-testid="button-request-solution">
+              Request a Solution <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </motion.div>
 
         {/* Trust Indicators */}

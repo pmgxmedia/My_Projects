@@ -110,7 +110,7 @@ export default function Home() {
       />
       
       {/* Featured Projects Grid */}
-      <section className="py-24 relative">
+      <section id="projects-section" className="py-24 relative">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
