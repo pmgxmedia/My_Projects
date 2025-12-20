@@ -1,18 +1,100 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Hero } from "@/components/hero";
 import { ProjectCard } from "@/components/project-card";
 import { ActivityFeed } from "@/components/activity-feed";
 import { activities } from "@/lib/data";
 import { motion } from "framer-motion";
-import { ArrowRight, Code2, Cpu, Globe } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchProjects } from "@/lib/api";
+import { ArrowRight, Code2, Cpu, Globe, Send, CheckCircle, BookOpen, FileCode, Shield, Zap, Database, GitBranch } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { fetchProjects, createEnquiry } from "@/lib/api";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
+  const [conversationDialogOpen, setConversationDialogOpen] = useState(false);
+  const [documentationDialogOpen, setDocumentationDialogOpen] = useState(false);
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
+
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
   });
+
+  const requestMutation = useMutation({
+    mutationFn: createEnquiry,
+    onSuccess: () => {
+      setRequestSubmitted(true);
+      setTimeout(() => {
+        setConversationDialogOpen(false);
+        setRequestSubmitted(false);
+      }, 2000);
+    },
+  });
+
+  const handleConversationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const company = formData.get("company") as string;
+    const budget = formData.get("budget") as string;
+    const message = formData.get("message") as string;
+    const fullMessage = `${company ? `Company: ${company}\n` : ''}${budget ? `Budget: ${budget}\n\n` : ''}${message}`;
+    
+    requestMutation.mutate({
+      projectId: null,
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      type: "custom" as const,
+      message: fullMessage,
+    });
+  };
+
+  const documentationSections = [
+    {
+      id: "overview",
+      title: "Overview",
+      content: [
+        { title: "Platform Purpose", description: "PMGXmedia is a professional portfolio platform showcasing software projects as verified digital assets with real-time analytics." },
+        { title: "Core Features", description: "Project lifecycle management, code file uploads, live demo embedding, resume management, and interactive hire/contact functionality." },
+        { title: "Technology Stack", description: "React, TypeScript, Node.js, Express, PostgreSQL, Drizzle ORM, Tailwind CSS, and Framer Motion." },
+      ]
+    },
+    {
+      id: "api",
+      title: "API Reference",
+      content: [
+        { title: "GET /api/projects", description: "Retrieve all visible projects with analytics data including views, enquiries, and engagement scores." },
+        { title: "GET /api/projects/:handleId", description: "Get a specific project by its unique handle identifier with full details." },
+        { title: "POST /api/enquiries", description: "Submit a new enquiry with name, email, type, and message fields." },
+        { title: "POST /api/feedback", description: "Submit project feedback with efficiency, clarity, and innovation ratings." },
+        { title: "GET /api/analytics/global", description: "Retrieve platform-wide analytics including total views and active visitors." },
+      ]
+    },
+    {
+      id: "architecture",
+      title: "Architecture",
+      content: [
+        { title: "Frontend", description: "React SPA with wouter routing, TanStack Query for data fetching, and shadcn/ui components." },
+        { title: "Backend", description: "Express.js server with RESTful API endpoints, session management, and file upload handling." },
+        { title: "Database", description: "PostgreSQL with Drizzle ORM for type-safe queries and migrations." },
+        { title: "Storage", description: "Object storage integration for project files, preview images, and resume documents." },
+      ]
+    },
+    {
+      id: "deployment",
+      title: "Deployment",
+      content: [
+        { title: "Environment", description: "Deployed on Replit with automatic HTTPS, custom domain support, and health monitoring." },
+        { title: "Database", description: "PostgreSQL database with automatic backups and rollback capabilities." },
+        { title: "CI/CD", description: "Automatic deployments on push with build verification and preview environments." },
+      ]
+    },
+  ];
 
   return (
     <Layout>
@@ -126,16 +208,142 @@ export default function Home() {
             Explore proven systems or commission a custom solution designed for your specific business needs.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-             {/* Reusing hero buttons styles */}
-             <button className="h-14 px-8 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+             <button 
+               className="h-14 px-8 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+               onClick={() => setConversationDialogOpen(true)}
+               data-testid="button-start-conversation"
+             >
                Start a Conversation
              </button>
-             <button className="h-14 px-8 rounded border border-white/10 hover:bg-white/5 transition-colors font-medium">
+             <button 
+               className="h-14 px-8 rounded border border-white/10 hover:bg-white/5 transition-colors font-medium"
+               onClick={() => setDocumentationDialogOpen(true)}
+               data-testid="button-view-documentation"
+             >
                View Documentation
              </button>
           </div>
         </div>
       </section>
+
+      {/* Start a Conversation Dialog */}
+      <Dialog open={conversationDialogOpen} onOpenChange={(open) => { setConversationDialogOpen(open); if (!open) setRequestSubmitted(false); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <Send className="h-6 w-6 text-primary" />
+              Start a Conversation
+            </DialogTitle>
+            <DialogDescription>
+              Tell me about your project idea and I'll get back to you within 24 hours.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {requestSubmitted ? (
+            <div className="py-12 text-center">
+              <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Message Sent!</h3>
+              <p className="text-muted-foreground">Thank you for reaching out. I'll respond shortly.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleConversationSubmit} className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="conv-name">Your Name *</Label>
+                  <Input id="conv-name" name="name" placeholder="John Doe" required data-testid="input-conv-name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="conv-email">Email *</Label>
+                  <Input id="conv-email" name="email" type="email" placeholder="john@company.com" required data-testid="input-conv-email" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="conv-company">Company</Label>
+                  <Input id="conv-company" name="company" placeholder="Acme Inc." data-testid="input-conv-company" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="conv-budget">Budget Range</Label>
+                  <Input id="conv-budget" name="budget" placeholder="$10k - $50k" data-testid="input-conv-budget" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="conv-message">What would you like to discuss? *</Label>
+                <Textarea 
+                  id="conv-message" 
+                  name="message" 
+                  placeholder="Describe your project, goals, timeline, and any specific requirements..."
+                  rows={4}
+                  required
+                  data-testid="input-conv-message"
+                />
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setConversationDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={requestMutation.isPending} data-testid="button-submit-conversation">
+                  {requestMutation.isPending ? "Sending..." : "Send Message"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Documentation Dialog */}
+      <Dialog open={documentationDialogOpen} onOpenChange={setDocumentationDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <BookOpen className="h-6 w-6 text-primary" />
+              Platform Documentation
+            </DialogTitle>
+            <DialogDescription>
+              Technical documentation and API reference for PMGXmedia platform.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="overview" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview" className="flex items-center gap-1">
+                <FileCode className="h-4 w-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="api" className="flex items-center gap-1">
+                <Zap className="h-4 w-4" />
+                API
+              </TabsTrigger>
+              <TabsTrigger value="architecture" className="flex items-center gap-1">
+                <Database className="h-4 w-4" />
+                Architecture
+              </TabsTrigger>
+              <TabsTrigger value="deployment" className="flex items-center gap-1">
+                <GitBranch className="h-4 w-4" />
+                Deployment
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex-1 overflow-y-auto mt-4">
+              {documentationSections.map((section) => (
+                <TabsContent key={section.id} value={section.id} className="space-y-4 m-0">
+                  {section.content.map((item, index) => (
+                    <div key={index} className="p-4 rounded-lg bg-card border border-white/10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">{section.title}</Badge>
+                        <h4 className="font-semibold">{item.title}</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                  ))}
+                </TabsContent>
+              ))}
+            </div>
+          </Tabs>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDocumentationDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
