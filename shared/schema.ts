@@ -33,6 +33,7 @@ export const projects = pgTable("projects", {
   isHidden: boolean("is_hidden").notNull().default(false),
   projectFilesPath: text("project_files_path"),
   demoUrl: text("demo_url"),
+  videoUrl: text("video_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
