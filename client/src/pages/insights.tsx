@@ -211,10 +211,15 @@ export default function Insights() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
   const [insightDialogOpen, setInsightDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const { toast } = useToast();
 
-  const featuredInsight = insights.find(i => i.featured);
-  const regularInsights = insights.filter(i => !i.featured);
+  const filteredInsights = selectedCategory === "All" 
+    ? insights 
+    : insights.filter(i => i.category === selectedCategory);
+  
+  const featuredInsight = filteredInsights.find(i => i.featured);
+  const regularInsights = filteredInsights.filter(i => !i.featured);
 
   const openInsightDetail = (insight: Insight) => {
     setSelectedInsight(insight);
@@ -282,9 +287,10 @@ export default function Insights() {
             {categories.map((category) => (
               <Button
                 key={category}
-                variant={category === "All" ? "default" : "outline"}
+                variant={category === selectedCategory ? "default" : "outline"}
                 size="sm"
                 className="rounded-full"
+                onClick={() => setSelectedCategory(category)}
                 data-testid={`button-category-${category.toLowerCase()}`}
               >
                 {category}
