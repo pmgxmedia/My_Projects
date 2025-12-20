@@ -298,11 +298,9 @@ export default function ProjectDetail() {
             {/* Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="bg-card border border-white/5 w-full justify-start h-12 p-1 flex-wrap">
-                {project.videoUrl && (
-                  <TabsTrigger value="video" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
-                    <Video className="h-4 w-4 mr-2" /> Watch Video
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="video" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
+                  <Video className="h-4 w-4 mr-2" /> Video
+                </TabsTrigger>
                 {project.demoUrl && (
                   <TabsTrigger value="demo" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                     <Play className="h-4 w-4 mr-2" /> Live Demo
@@ -313,73 +311,112 @@ export default function ProjectDetail() {
                 <TabsTrigger value="impact" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Business Impact</TabsTrigger>
               </TabsList>
 
-              {project.videoUrl && (
-                <TabsContent value="video" className="mt-6 animate-in fade-in slide-in-from-bottom-4">
+              <TabsContent value="video" className="mt-6 animate-in fade-in slide-in-from-bottom-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <Card className="border-purple-500/20 overflow-hidden shadow-2xl shadow-purple-500/10">
-                      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500/10 to-transparent border-b border-purple-500/20">
-                        <div className="flex items-center gap-2">
-                          <Video className="h-4 w-4 text-purple-400" />
-                          <span className="text-sm font-medium text-purple-300">Project Walkthrough</span>
+                    {project.videoUrl ? (
+                      <>
+                        <Card className="border-purple-500/20 overflow-hidden shadow-2xl shadow-purple-500/10">
+                          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500/10 to-transparent border-b border-purple-500/20">
+                            <div className="flex items-center gap-2">
+                              <Video className="h-4 w-4 text-purple-400" />
+                              <span className="text-sm font-medium text-purple-300">Project Walkthrough</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                                onClick={() => window.open(project.videoUrl!, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" /> Open in New Tab
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="relative w-full bg-black" style={{ paddingTop: '56.25%' }}>
+                            <iframe 
+                              src={getEmbedUrl(project.videoUrl)}
+                              className="absolute inset-0 w-full h-full border-0"
+                              title={`${project.title} Video`}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                              allowFullScreen
+                              loading="lazy"
+                            />
+                          </div>
+                          <div className="px-4 py-3 bg-gradient-to-r from-purple-500/5 to-transparent border-t border-purple-500/10">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Use video player controls for playback</span>
+                              <div className="flex items-center gap-4 text-purple-300">
+                                <span className="flex items-center gap-1">
+                                  <Play className="h-3 w-3" /> Play/Pause
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Maximize2 className="h-3 w-3" /> Fullscreen
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                        
+                        <div className="mt-6 grid md:grid-cols-3 gap-4">
+                          <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                              <Eye className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-sm">Full Demonstration</h4>
+                              <p className="text-xs text-muted-foreground mt-1">See the complete project in action</p>
+                            </div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                              <Target className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-sm">Key Features</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Walkthrough of core functionality</p>
+                            </div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                              <Zap className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-sm">Technical Insights</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Behind-the-scenes implementation</p>
+                            </div>
+                          </div>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
-                          onClick={() => window.open(project.videoUrl!, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Watch on Platform
-                        </Button>
-                      </div>
-                      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                        <iframe 
-                          src={getEmbedUrl(project.videoUrl)}
-                          className="absolute inset-0 w-full h-full border-0"
-                          title={`${project.title} Video`}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          loading="lazy"
-                        />
-                      </div>
-                    </Card>
-                    
-                    {/* Video highlights section */}
-                    <div className="mt-6 grid md:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                          <Eye className="h-5 w-5" />
+                      </>
+                    ) : (
+                      <Card className="border-purple-500/20 overflow-hidden">
+                        <div className="flex flex-col items-center justify-center py-16 px-8 text-center bg-gradient-to-br from-purple-500/5 to-transparent">
+                          <div className="h-20 w-20 rounded-full bg-purple-500/10 flex items-center justify-center mb-6">
+                            <Video className="h-10 w-10 text-purple-400" />
+                          </div>
+                          <h3 className="text-xl font-display font-semibold text-purple-300 mb-2">Video Coming Soon</h3>
+                          <p className="text-muted-foreground max-w-md mb-6">
+                            A detailed video walkthrough of this project is being prepared. Check back soon for a full demonstration of features and implementation details.
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-2">
+                              <Eye className="h-4 w-4 text-purple-400" /> Full Demo
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-purple-400" /> Feature Walkthrough
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-purple-400" /> Technical Deep Dive
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium text-sm">Full Demonstration</h4>
-                          <p className="text-xs text-muted-foreground mt-1">See the complete project in action</p>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                          <Target className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-sm">Key Features</h4>
-                          <p className="text-xs text-muted-foreground mt-1">Walkthrough of core functionality</p>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                          <Zap className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-sm">Technical Insights</h4>
-                          <p className="text-xs text-muted-foreground mt-1">Behind-the-scenes implementation</p>
-                        </div>
-                      </div>
-                    </div>
+                      </Card>
+                    )}
                   </motion.div>
                 </TabsContent>
-              )}
 
               {project.demoUrl && (
                 <TabsContent value="demo" className="mt-6 animate-in fade-in slide-in-from-bottom-4">
