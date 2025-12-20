@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ExternalLink, Shield, Server, Layers, Play, Maximize2, Download, FileCode, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, Shield, Server, Layers, Play, Maximize2, Download, FileCode, X, Video, Eye, Users, TrendingUp, Star, CheckCircle, Clock, Zap, Target, Award } from "lucide-react";
 import { Link } from "wouter";
 import NotFound from "@/pages/not-found";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +16,33 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BarChart3, ChevronDown, ChevronUp } from "lucide-react";
+import { motion } from "framer-motion";
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube.com/embed/${match[2]}?autoplay=0&rel=0`;
+  }
+  return null;
+}
+
+function getVimeoEmbedUrl(url: string): string | null {
+  const regExp = /vimeo\.com\/(\d+)/;
+  const match = url.match(regExp);
+  if (match && match[1]) {
+    return `https://player.vimeo.com/video/${match[1]}`;
+  }
+  return null;
+}
+
+function getEmbedUrl(url: string): string {
+  const youtubeUrl = getYouTubeEmbedUrl(url);
+  if (youtubeUrl) return youtubeUrl;
+  const vimeoUrl = getVimeoEmbedUrl(url);
+  if (vimeoUrl) return vimeoUrl;
+  return url;
+}
 
 export default function ProjectDetail() {
   const [match, params] = useRoute("/p/:id");
@@ -44,10 +71,10 @@ export default function ProjectDetail() {
   // Set initial tab based on available content
   useEffect(() => {
     if (project) {
-      if (project.demoUrl) {
+      if (project.videoUrl) {
+        setActiveTab("video");
+      } else if (project.demoUrl) {
         setActiveTab("demo");
-      } else if (project.projectFilesPath) {
-        setActiveTab("files");
       } else {
         setActiveTab("story");
       }
@@ -58,7 +85,8 @@ export default function ProjectDetail() {
   if (isLoading) return <Layout><div className="py-24 text-center text-muted-foreground">Loading project...</div></Layout>;
   if (!project) return <NotFound />;
 
-  const hasDemoContent = project.demoUrl || project.projectFilesPath;
+  const hasDemoContent = project.demoUrl || project.projectFilesPath || project.videoUrl;
+  const hasVideo = !!project.videoUrl;
 
   return (
     <Layout>
@@ -83,6 +111,11 @@ export default function ProjectDetail() {
                     <Play className="h-3 w-3 mr-1" /> Live Demo
                   </Badge>
                 )}
+                {project.videoUrl && (
+                  <Badge className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 uppercase text-[10px] tracking-wider font-bold">
+                    <Video className="h-3 w-3 mr-1" /> Video
+                  </Badge>
+                )}
               </div>
               <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground mb-4" data-testid="text-project-title">
                 {project.title}
@@ -92,7 +125,17 @@ export default function ProjectDetail() {
               </p>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
+              {project.videoUrl && (
+                <Button 
+                  size="lg" 
+                  className="bg-purple-600 text-white hover:bg-purple-700"
+                  onClick={() => window.open(project.videoUrl!, '_blank')}
+                  data-testid="button-watch-video"
+                >
+                  <Video className="mr-2 h-4 w-4" /> Watch Video
+                </Button>
+              )}
               {project.demoUrl && (
                 <Button 
                   size="lg" 
@@ -161,11 +204,22 @@ export default function ProjectDetail() {
                       <div className="w-3 h-3 rounded-full bg-green-500/80" />
                     </div>
                     <span className="text-xs text-muted-foreground ml-2 font-mono">
-                      {project.demoUrl ? new URL(project.demoUrl!).hostname : 'Project Preview'}
+                      {project.videoUrl ? 'Project Video' : project.demoUrl ? new URL(project.demoUrl!).hostname : 'Project Preview'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {project.demoUrl && (
+                    {project.videoUrl && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0"
+                        onClick={() => window.open(project.videoUrl!, '_blank')}
+                        title="Open video in new tab"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {project.demoUrl && !project.videoUrl && (
                       <>
                         <Button 
                           variant="ghost" 
@@ -189,7 +243,19 @@ export default function ProjectDetail() {
                   </div>
                 </div>
                 <CardContent className="p-0">
-                  {project.demoUrl ? (
+                  {project.videoUrl ? (
+                    <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                      <iframe 
+                        src={getEmbedUrl(project.videoUrl)}
+                        className="absolute inset-0 w-full h-full border-0"
+                        title={`${project.title} Video`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        loading="lazy"
+                        data-testid="iframe-video"
+                      />
+                    </div>
+                  ) : project.demoUrl ? (
                     <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
                       <iframe 
                         src={project.demoUrl}
@@ -232,6 +298,11 @@ export default function ProjectDetail() {
             {/* Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="bg-card border border-white/5 w-full justify-start h-12 p-1 flex-wrap">
+                {project.videoUrl && (
+                  <TabsTrigger value="video" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
+                    <Video className="h-4 w-4 mr-2" /> Watch Video
+                  </TabsTrigger>
+                )}
                 {project.demoUrl && (
                   <TabsTrigger value="demo" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                     <Play className="h-4 w-4 mr-2" /> Live Demo
@@ -241,6 +312,74 @@ export default function ProjectDetail() {
                 <TabsTrigger value="tech" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Technical Stack</TabsTrigger>
                 <TabsTrigger value="impact" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Business Impact</TabsTrigger>
               </TabsList>
+
+              {project.videoUrl && (
+                <TabsContent value="video" className="mt-6 animate-in fade-in slide-in-from-bottom-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Card className="border-purple-500/20 overflow-hidden shadow-2xl shadow-purple-500/10">
+                      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500/10 to-transparent border-b border-purple-500/20">
+                        <div className="flex items-center gap-2">
+                          <Video className="h-4 w-4 text-purple-400" />
+                          <span className="text-sm font-medium text-purple-300">Project Walkthrough</span>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                          onClick={() => window.open(project.videoUrl!, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" /> Watch on Platform
+                        </Button>
+                      </div>
+                      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                        <iframe 
+                          src={getEmbedUrl(project.videoUrl)}
+                          className="absolute inset-0 w-full h-full border-0"
+                          title={`${project.title} Video`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          loading="lazy"
+                        />
+                      </div>
+                    </Card>
+                    
+                    {/* Video highlights section */}
+                    <div className="mt-6 grid md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                          <Eye className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">Full Demonstration</h4>
+                          <p className="text-xs text-muted-foreground mt-1">See the complete project in action</p>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                          <Target className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">Key Features</h4>
+                          <p className="text-xs text-muted-foreground mt-1">Walkthrough of core functionality</p>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-card border border-white/10 flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+                          <Zap className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">Technical Insights</h4>
+                          <p className="text-xs text-muted-foreground mt-1">Behind-the-scenes implementation</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </TabsContent>
+              )}
 
               {project.demoUrl && (
                 <TabsContent value="demo" className="mt-6 animate-in fade-in slide-in-from-bottom-4">
@@ -361,6 +500,10 @@ export default function ProjectDetail() {
                 <div className="flex justify-between border-b border-white/5 pb-2">
                   <dt className="text-muted-foreground">Demo Available</dt>
                   <dd className="font-medium">{project.demoUrl ? <span className="text-emerald-500">Yes</span> : <span className="text-muted-foreground">No</span>}</dd>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <dt className="text-muted-foreground">Video Walkthrough</dt>
+                  <dd className="font-medium">{project.videoUrl ? <span className="text-purple-400">Available</span> : <span className="text-muted-foreground">No</span>}</dd>
                 </div>
                 <div className="flex justify-between pt-2">
                   <dt className="text-muted-foreground">Availability</dt>
