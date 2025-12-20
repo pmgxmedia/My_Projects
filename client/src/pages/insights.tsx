@@ -2,7 +2,15 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { createEnquiry } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import { 
   BookOpen, 
   Clock, 
@@ -12,7 +20,9 @@ import {
   Code2,
   Zap,
   Shield,
-  Database
+  Database,
+  MessageCircle,
+  Send
 } from "lucide-react";
 
 const insights = [
@@ -76,8 +86,52 @@ const insights = [
 const categories = ["All", "Frontend", "Backend", "Security", "Performance", "Strategy", "Analytics"];
 
 export default function Insights() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
   const featuredInsight = insights.find(i => i.featured);
   const regularInsights = insights.filter(i => !i.featured);
+
+  const submitEnquiryMutation = useMutation({
+    mutationFn: createEnquiry,
+    onSuccess: () => {
+      toast({
+        title: "Message Sent!",
+        description: "Thanks for reaching out. I'll get back to you within 24-48 hours.",
+      });
+      setDialogOpen(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const topic = formData.get("topic") as string;
+    const message = formData.get("message") as string;
+
+    submitEnquiryMutation.mutate({
+      name,
+      email,
+      type: "custom",
+      message: `[Insights Discussion: ${topic}] ${message}`,
+    });
+  };
+
+  const handleReadArticle = (title: string) => {
+    toast({
+      title: "Coming Soon",
+      description: `"${title}" - Full articles will be available soon. Stay tuned!`,
+    });
+  };
 
   return (
     <Layout>
@@ -141,7 +195,7 @@ export default function Insights() {
                       <span>{featuredInsight.date}</span>
                       <Badge variant="outline">{featuredInsight.category}</Badge>
                     </div>
-                    <Button className="w-fit">
+                    <Button className="w-fit" onClick={() => handleReadArticle(featuredInsight.title)}>
                       Read Article <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -163,7 +217,11 @@ export default function Insights() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="h-full bg-card/50 border-white/10 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 cursor-pointer group" data-testid={`card-insight-${insight.id}`}>
+                <Card 
+                  className="h-full bg-card/50 border-white/10 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 cursor-pointer group" 
+                  data-testid={`card-insight-${insight.id}`}
+                  onClick={() => handleReadArticle(insight.title)}
+                >
                   <CardHeader>
                     <div className="flex items-center justify-between mb-4">
                       <Badge variant="outline" className="text-xs">
@@ -204,11 +262,69 @@ export default function Insights() {
             These insights are based on real project experiences. If you'd like to discuss any of these topics 
             or see how they could apply to your project, let's connect.
           </p>
-          <Button size="lg" data-testid="button-insights-cta">
+          <Button size="lg" onClick={() => setDialogOpen(true)} data-testid="button-insights-cta">
             Start a Conversation <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </section>
+
+      {/* Contact Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Let's Discuss
+            </DialogTitle>
+            <DialogDescription>
+              Have questions about these insights or want to discuss how they apply to your project?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" placeholder="Your name" required data-testid="input-insights-name" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" placeholder="you@example.com" required data-testid="input-insights-email" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="topic">Topic of Interest</Label>
+              <Input id="topic" name="topic" placeholder="e.g., React architecture, performance optimization..." required data-testid="input-insights-topic" />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="message">Your Question or Comment</Label>
+              <Textarea 
+                id="message" 
+                name="message" 
+                placeholder="What would you like to discuss?" 
+                rows={4}
+                required
+                data-testid="input-insights-message"
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitEnquiryMutation.isPending} data-testid="button-send-insights-message">
+                {submitEnquiryMutation.isPending ? "Sending..." : (
+                  <>
+                    Send Message <Send className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
