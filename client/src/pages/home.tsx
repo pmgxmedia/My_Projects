@@ -3,7 +3,6 @@ import { Layout } from "@/components/layout";
 import { Hero } from "@/components/hero";
 import { ProjectCard } from "@/components/project-card";
 import { ActivityFeed } from "@/components/activity-feed";
-import { activities } from "@/lib/data";
 import { motion } from "framer-motion";
 import { ArrowRight, Code2, Cpu, Globe, Send, CheckCircle, BookOpen, FileCode, Shield, Zap, Database, GitBranch } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -204,7 +203,7 @@ export default function Home() {
             </div>
           </div>
           <div>
-            <ActivityFeed activities={activities} />
+            <ActivityFeed />
           </div>
         </div>
       </section>

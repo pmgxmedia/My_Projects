@@ -1,38 +1,76 @@
-import { Activity } from "@/lib/data";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Globe, MessageSquare, ShieldCheck } from "lucide-react";
+import { Globe, MessageSquare, ShieldCheck, Star, Eye } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-interface ActivityFeedProps {
-  activities: Activity[];
+interface ActivityItem {
+  id: string;
+  text: string;
+  time: string;
+  type: "view" | "enquiry" | "feedback" | "license";
 }
 
-export function ActivityFeed({ activities: initialActivities }: ActivityFeedProps) {
-  const [items, setItems] = useState(initialActivities);
+async function fetchRecentActivity(): Promise<ActivityItem[]> {
+  const response = await fetch("/api/activity/recent");
+  if (!response.ok) throw new Error("Failed to fetch activity");
+  return response.json();
+}
 
-  // Simulate incoming live activity
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
+export function ActivityFeed() {
+  const [items, setItems] = useState<ActivityItem[]>([]);
+
+  const { data: activities } = useQuery({
+    queryKey: ["recentActivity"],
+    queryFn: fetchRecentActivity,
+    refetchInterval: 10000,
+  });
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newItem: Activity = {
-        id: Date.now(),
-        text: "New visitor from San Francisco viewing AI CRM",
-        time: "Just now",
-        type: "view"
-      };
-      setItems(prev => [newItem, ...prev.slice(0, 4)]);
-    }, 8000);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (activities && activities.length > 0) {
+      setItems(activities.slice(0, 5));
+    }
+  }, [activities]);
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "view": return <Globe className="h-3 w-3 text-blue-400" />;
+      case "view": return <Eye className="h-3 w-3 text-blue-400" />;
       case "enquiry": return <MessageSquare className="h-3 w-3 text-emerald-400" />;
-      case "license": return <ShieldCheck className="h-3 w-3 text-amber-400" />;
+      case "feedback": return <Star className="h-3 w-3 text-amber-400" />;
+      case "license": return <ShieldCheck className="h-3 w-3 text-purple-400" />;
       default: return <Globe className="h-3 w-3" />;
     }
   };
+
+  if (items.length === 0) {
+    return (
+      <div className="w-full bg-card/30 backdrop-blur border border-white/5 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Live Activity Feed</h3>
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+        </div>
+        <div className="text-sm text-muted-foreground text-center py-4">
+          Waiting for activity...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-card/30 backdrop-blur border border-white/5 rounded-lg p-4">

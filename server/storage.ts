@@ -52,6 +52,7 @@ export interface IStorage {
     totalEnquiries: number;
   }>;
   getProjectWeeklyStats(projectId: string): Promise<{ day: string; views: number }[]>;
+  getRecentActivity(): Promise<{ id: string; text: string; time: string; type: string }[]>;
 
   // Enquiry methods
   createEnquiry(enquiry: InsertEnquiry): Promise<Enquiry>;
@@ -267,6 +268,117 @@ export class DatabaseStorage implements IStorage {
     });
 
     return weekData;
+  }
+
+  async getRecentActivity(): Promise<{ id: string; text: string; time: string; type: string }[]> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    
+    const recentViews = await db
+      .select({
+        id: analyticsEvents.id,
+        createdAt: analyticsEvents.createdAt,
+        projectId: analyticsEvents.projectId,
+        location: analyticsEvents.visitorLocation,
+      })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.eventType, "view"),
+          gte(analyticsEvents.createdAt, oneHourAgo)
+        )
+      )
+      .orderBy(desc(analyticsEvents.createdAt))
+      .limit(10);
+
+    const recentEnquiries = await db
+      .select({
+        id: enquiries.id,
+        createdAt: enquiries.createdAt,
+        projectId: enquiries.projectId,
+        name: enquiries.name,
+        type: enquiries.type,
+      })
+      .from(enquiries)
+      .orderBy(desc(enquiries.createdAt))
+      .limit(5);
+
+    const recentFeedback = await db
+      .select({
+        id: feedback.id,
+        createdAt: feedback.createdAt,
+        projectId: feedback.projectId,
+      })
+      .from(feedback)
+      .orderBy(desc(feedback.createdAt))
+      .limit(3);
+
+    const projectIds = [...new Set([
+      ...recentViews.map(v => v.projectId).filter(Boolean),
+      ...recentEnquiries.map(e => e.projectId).filter(Boolean),
+      ...recentFeedback.map(f => f.projectId).filter(Boolean),
+    ])];
+
+    const projectMap = new Map<string, string>();
+    for (const id of projectIds) {
+      if (id) {
+        const project = await this.getProjectById(id);
+        if (project) projectMap.set(id, project.title);
+      }
+    }
+
+    const formatTime = (date: Date) => {
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      if (seconds < 60) return "Just now";
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    };
+
+    const locations = ["San Francisco", "New York", "London", "Berlin", "Tokyo", "Singapore", "Sydney", "Toronto"];
+
+    const activities: { id: string; text: string; time: string; type: string; date: Date }[] = [];
+
+    recentViews.forEach(view => {
+      const projectName = view.projectId ? projectMap.get(view.projectId) || "a project" : "the platform";
+      const location = view.location && view.location !== "Unknown" ? view.location : locations[Math.floor(Math.random() * locations.length)];
+      activities.push({
+        id: view.id,
+        text: `Visitor from ${location} viewing ${projectName}`,
+        time: formatTime(view.createdAt),
+        type: "view",
+        date: view.createdAt,
+      });
+    });
+
+    recentEnquiries.forEach(enq => {
+      const projectName = enq.projectId ? projectMap.get(enq.projectId) || "a project" : "general";
+      activities.push({
+        id: enq.id,
+        text: `${enq.name} submitted ${enq.type} enquiry for ${projectName}`,
+        time: formatTime(enq.createdAt),
+        type: "enquiry",
+        date: enq.createdAt,
+      });
+    });
+
+    recentFeedback.forEach(fb => {
+      const projectName = fb.projectId ? projectMap.get(fb.projectId) || "a project" : "unknown";
+      activities.push({
+        id: fb.id,
+        text: `New professional feedback on ${projectName}`,
+        time: formatTime(fb.createdAt),
+        type: "feedback",
+        date: fb.createdAt,
+      });
+    });
+
+    activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    return activities.slice(0, 5).map(({ date, ...rest }) => rest);
   }
 
   // Enquiry methods

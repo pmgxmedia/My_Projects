@@ -118,6 +118,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/activity/recent", async (req, res) => {
+    try {
+      const activity = await storage.getRecentActivity();
+      res.json(activity);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/analytics/project/:projectId", async (req, res) => {
     try {
       const analytics = await storage.getProjectAnalytics(req.params.projectId);
