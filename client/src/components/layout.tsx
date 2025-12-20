@@ -9,7 +9,7 @@ import { Menu, X, Terminal, ArrowRight, FileText, Download, Mail, Linkedin, Gith
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchResumes, createEnquiry, type ResumeData } from "@/lib/api";
+import { fetchResumes, createEnquiry, fetchSiteSettings, type ResumeData } from "@/lib/api";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -29,6 +29,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: resumes = [] } = useQuery({
     queryKey: ["public-resumes"],
     queryFn: fetchResumes,
+  });
+
+  const { data: siteSettings = {} } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: fetchSiteSettings,
   });
 
   const visibleResume = resumes.find((r: ResumeData) => r.isVisible);
@@ -76,9 +81,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-              <div className="h-8 w-8 bg-primary/10 rounded border border-primary/30 flex items-center justify-center group-hover:border-primary/60 transition-colors">
-                <Terminal className="h-4 w-4 text-primary" />
-              </div>
+              {siteSettings.profileImage ? (
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-primary/30 group-hover:border-primary/60 transition-colors">
+                  <img 
+                    src={siteSettings.profileImage} 
+                    alt="PMGXmedia" 
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-8 w-8 bg-primary/10 rounded border border-primary/30 flex items-center justify-center group-hover:border-primary/60 transition-colors">
+                  <Terminal className="h-4 w-4 text-primary" />
+                </div>
+              )}
               <span className="font-display font-bold text-lg tracking-tight">
                 PMGXmedia
               </span>
@@ -336,7 +351,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 grid md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <Terminal className="h-5 w-5 text-primary" />
+              {siteSettings.profileImage ? (
+                <div className="h-6 w-6 rounded-full overflow-hidden">
+                  <img src={siteSettings.profileImage} alt="PMGXmedia" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <Terminal className="h-5 w-5 text-primary" />
+              )}
               <span className="font-display font-bold text-xl">PMGXmedia</span>
             </div>
             <p className="text-muted-foreground max-w-sm">

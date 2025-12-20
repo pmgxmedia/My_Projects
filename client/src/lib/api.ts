@@ -152,3 +152,19 @@ export async function deleteResume(id: string): Promise<void> {
   });
   if (!res.ok) throw new Error("Failed to delete resume");
 }
+
+// Site Settings APIs
+export async function fetchSiteSettings(): Promise<Record<string, string>> {
+  const res = await fetch(`${API_BASE}/settings`);
+  if (!res.ok) throw new Error("Failed to fetch settings");
+  return res.json();
+}
+
+export async function updateSiteSetting(key: string, value: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
+  if (!res.ok) throw new Error("Failed to update setting");
+}

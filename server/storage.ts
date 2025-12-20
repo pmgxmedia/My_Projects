@@ -7,6 +7,7 @@ import {
   enquiries,
   feedback,
   resumes,
+  siteSettings,
   type User,
   type InsertUser,
   type Project,
@@ -19,6 +20,7 @@ import {
   type InsertFeedback,
   type Resume,
   type InsertResume,
+  type SiteSetting,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
@@ -65,6 +67,11 @@ export interface IStorage {
   createResume(resume: InsertResume): Promise<Resume>;
   updateResumeVisibility(id: string, isVisible: boolean): Promise<Resume | undefined>;
   deleteResume(id: string): Promise<void>;
+
+  // Site Settings methods
+  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
+  getAllSiteSettings(): Promise<SiteSetting[]>;
+  upsertSiteSetting(key: string, value: string): Promise<SiteSetting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -243,6 +250,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteResume(id: string): Promise<void> {
     await db.delete(resumes).where(eq(resumes.id, id));
+  }
+
+  // Site Settings methods
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return setting || undefined;
+  }
+
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings);
+  }
+
+  async upsertSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    const existing = await this.getSiteSetting(key);
+    if (existing) {
+      const [updated] = await db
+        .update(siteSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(siteSettings)
+        .values({ key, value })
+        .returning();
+      return created;
+    }
   }
 }
 

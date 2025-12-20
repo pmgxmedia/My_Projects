@@ -234,5 +234,42 @@ export async function registerRoutes(
     }
   });
 
+  // Site Settings routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      const settingsMap: Record<string, string> = {};
+      settings.forEach(s => { settingsMap[s.key] = s.value; });
+      res.json(settingsMap);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const setting = await storage.getSiteSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const { key, value } = req.body;
+      if (!key || !value) {
+        return res.status(400).json({ message: "Key and value are required" });
+      }
+      const setting = await storage.upsertSiteSetting(key, value);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   return httpServer;
 }

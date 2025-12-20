@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume } from "@/lib/api";
+import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import type { InsertProject } from "@shared/schema";
@@ -59,6 +59,11 @@ export default function AdminDashboard() {
   const { data: resumes = [], isLoading: resumesLoading } = useQuery({
     queryKey: ["resumes"],
     queryFn: fetchResumes,
+  });
+
+  const { data: siteSettings = {} } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: fetchSiteSettings,
   });
 
   const { uploadFile, isUploading } = useUpload({
@@ -151,6 +156,28 @@ export default function AdminDashboard() {
       toast({ title: "Resume Deleted", description: "Resume has been removed." });
     },
   });
+
+  const updateSettingMutation = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) => updateSiteSetting(key, value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+      toast({ title: "Setting Updated", description: "Site setting has been updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update setting.", variant: "destructive" });
+    },
+  });
+
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const response = await uploadFile(file);
+    if (response) {
+      updateSettingMutation.mutate({ key: "profileImage", value: response.objectPath });
+    }
+    e.target.value = "";
+  };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -318,6 +345,53 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Site Branding Section */}
+        <Card className="bg-card border-white/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Site Branding
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <div className="space-y-2">
+                <Label>Profile / Logo Image</Label>
+                <p className="text-sm text-muted-foreground">This image appears in the header and about sections.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                {siteSettings.profileImage ? (
+                  <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/30">
+                    <img 
+                      src={siteSettings.profileImage} 
+                      alt="Profile" 
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-20 w-20 rounded-full bg-primary/10 border-2 border-dashed border-primary/30 flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-primary/50" />
+                  </div>
+                )}
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isUploading}
+                    data-testid="input-profile-image-upload"
+                  />
+                  <Button variant="outline" disabled={isUploading} data-testid="button-upload-profile-image">
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isUploading ? "Uploading..." : siteSettings.profileImage ? "Change Image" : "Upload Image"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Resume Management Section */}
         <Card className="bg-card border-white/5">
