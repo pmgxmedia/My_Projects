@@ -112,6 +112,13 @@ export async function updateEnquiryStatus(id: string, status: string): Promise<v
   if (!res.ok) throw new Error("Failed to update enquiry status");
 }
 
+export async function deleteEnquiry(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/enquiries/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete enquiry");
+}
+
 // Resume APIs
 export interface ResumeData {
   id: string;

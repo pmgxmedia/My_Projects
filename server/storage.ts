@@ -57,6 +57,7 @@ export interface IStorage {
   getAllEnquiries(): Promise<Enquiry[]>;
   getEnquiriesByProject(projectId: string): Promise<Enquiry[]>;
   updateEnquiryStatus(id: string, status: string): Promise<void>;
+  deleteEnquiry(id: string): Promise<void>;
 
   // Feedback methods
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
@@ -213,6 +214,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateEnquiryStatus(id: string, status: string): Promise<void> {
     await db.update(enquiries).set({ status }).where(eq(enquiries.id, id));
+  }
+
+  async deleteEnquiry(id: string): Promise<void> {
+    await db.delete(enquiries).where(eq(enquiries.id, id));
   }
 
   // Feedback methods

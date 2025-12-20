@@ -169,6 +169,15 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/enquiries/:id", async (req, res) => {
+    try {
+      await storage.deleteEnquiry(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Feedback routes
   app.post("/api/feedback", async (req, res) => {
     try {

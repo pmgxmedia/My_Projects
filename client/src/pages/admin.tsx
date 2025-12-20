@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight, Type, Save, Video } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting, updateEnquiryStatus } from "@/lib/api";
+import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting, updateEnquiryStatus, deleteEnquiry } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import type { InsertProject } from "@shared/schema";
@@ -184,6 +184,19 @@ export default function AdminDashboard() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update enquiry status.", variant: "destructive" });
+    },
+  });
+
+  const deleteEnquiryMutation = useMutation({
+    mutationFn: deleteEnquiry,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["enquiries"] });
+      setEnquiryDialogOpen(false);
+      setSelectedEnquiry(null);
+      toast({ title: "Message Deleted", description: "The message has been removed from your inbox." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete message.", variant: "destructive" });
     },
   });
 
@@ -617,7 +630,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <DialogFooter className="flex-col sm:flex-row gap-2">
-                  <div className="flex gap-2 flex-1">
+                  <div className="flex gap-2 flex-1 flex-wrap">
                     {selectedEnquiry.status === 'pending' && (
                       <Button 
                         variant="outline" 
@@ -645,6 +658,35 @@ export default function AdminDashboard() {
                         Mark Responded
                       </Button>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                          data-testid="button-delete-enquiry"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this message from {selectedEnquiry.name}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="bg-destructive hover:bg-destructive/90"
+                            onClick={() => deleteEnquiryMutation.mutate(selectedEnquiry.id)}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                   <Button asChild>
                     <a href={`mailto:${selectedEnquiry.email}?subject=Re: Your inquiry on PMGXmedia`}>
