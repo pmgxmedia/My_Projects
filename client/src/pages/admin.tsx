@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight, Type, Save } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting, updateEnquiryStatus } from "@/lib/api";
@@ -41,6 +41,9 @@ export default function AdminDashboard() {
   const [uploadedPreviewImage, setUploadedPreviewImage] = useState<{ path: string; name: string } | null>(null);
   const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
   const [enquiryDialogOpen, setEnquiryDialogOpen] = useState(false);
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroSubtitle, setHeroSubtitle] = useState("");
+  const [announcementText, setAnnouncementText] = useState("");
   const projectFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -214,6 +217,24 @@ export default function AdminDashboard() {
   const pendingEnquiries = enquiries.filter((e: any) => e.status === 'pending');
   const reviewedEnquiries = enquiries.filter((e: any) => e.status === 'reviewed');
   const respondedEnquiries = enquiries.filter((e: any) => e.status === 'responded');
+
+  useEffect(() => {
+    if (siteSettings.heroTitle) setHeroTitle(siteSettings.heroTitle);
+    if (siteSettings.heroSubtitle) setHeroSubtitle(siteSettings.heroSubtitle);
+    if (siteSettings.announcementText) setAnnouncementText(siteSettings.announcementText);
+  }, [siteSettings]);
+
+  const saveTextSettings = () => {
+    if (heroTitle !== siteSettings.heroTitle) {
+      updateSettingMutation.mutate({ key: "heroTitle", value: heroTitle });
+    }
+    if (heroSubtitle !== siteSettings.heroSubtitle) {
+      updateSettingMutation.mutate({ key: "heroSubtitle", value: heroSubtitle });
+    }
+    if (announcementText !== siteSettings.announcementText) {
+      updateSettingMutation.mutate({ key: "announcementText", value: announcementText });
+    }
+  };
 
   const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -436,6 +457,62 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Platform Updates Section */}
+        <Card className="bg-card border-white/5">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Type className="h-5 w-5" />
+              Platform Text Management
+            </CardTitle>
+            <Button 
+              onClick={saveTextSettings} 
+              disabled={updateSettingMutation.isPending}
+              data-testid="button-save-text-settings"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {updateSettingMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="heroTitle">Hero Title</Label>
+                <Input
+                  id="heroTitle"
+                  value={heroTitle}
+                  onChange={(e) => setHeroTitle(e.target.value)}
+                  placeholder="Main headline text"
+                  data-testid="input-hero-title"
+                />
+                <p className="text-xs text-muted-foreground">The main headline displayed on the home page.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
+                <Input
+                  id="heroSubtitle"
+                  value={heroSubtitle}
+                  onChange={(e) => setHeroSubtitle(e.target.value)}
+                  placeholder="Supporting text under the headline"
+                  data-testid="input-hero-subtitle"
+                />
+                <p className="text-xs text-muted-foreground">Supporting text displayed below the headline.</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="announcementText">Announcement Banner</Label>
+              <Textarea
+                id="announcementText"
+                value={announcementText}
+                onChange={(e) => setAnnouncementText(e.target.value)}
+                placeholder="Optional announcement or update message (leave empty to hide)"
+                rows={2}
+                data-testid="input-announcement-text"
+              />
+              <p className="text-xs text-muted-foreground">Displays as a banner at the top of the site. Leave empty to hide.</p>
             </div>
           </CardContent>
         </Card>

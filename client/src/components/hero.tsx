@@ -1,11 +1,50 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
+import { ArrowRight, CheckCircle2, TrendingUp, Megaphone, X } from "lucide-react";
 import bgImage from "@assets/generated_images/dark_abstract_executive_tech_background_with_subtle_grid.png";
+import { useState } from "react";
 
-export function Hero() {
+interface HeroProps {
+  heroTitle?: string;
+  heroSubtitle?: string;
+  announcementText?: string;
+}
+
+const defaultTitle = "Your Work. Verified.";
+const defaultTitleHighlight = "Measurable. Sellable.";
+const defaultSubtitle = "I design, build, and deploy production-grade web and software systems. Every project here is a live digital asset with its own identity, performance metrics, and conversion flow.";
+
+export function Hero({ heroTitle, heroSubtitle, announcementText }: HeroProps) {
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  
+  const displayTitle = heroTitle || defaultTitle;
+  const displaySubtitle = heroSubtitle || defaultSubtitle;
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden border-b border-white/5">
+      {/* Announcement Banner */}
+      {announcementText && !announcementDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-r from-primary/20 via-primary/10 to-secondary/20 border-b border-primary/20 backdrop-blur-sm"
+        >
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <Megaphone className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-sm text-white/90">{announcementText}</p>
+            </div>
+            <button 
+              onClick={() => setAnnouncementDismissed(true)}
+              className="p-1 hover:bg-white/10 rounded transition-colors"
+              aria-label="Dismiss announcement"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Background with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
@@ -36,10 +75,11 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-tight text-white mb-6 leading-[1.1]"
+          data-testid="text-hero-title"
         >
-          Your Work. Verified. <br />
+          {displayTitle} <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-secondary">
-            Measurable. Sellable.
+            {heroTitle ? "" : defaultTitleHighlight}
           </span>
         </motion.h1>
 
@@ -48,10 +88,9 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
+          data-testid="text-hero-subtitle"
         >
-          I design, build, and deploy production-grade web and software systems. 
-          Every project here is a live digital asset with its own identity, 
-          performance metrics, and conversion flow.
+          {displaySubtitle}
         </motion.p>
 
         <motion.div

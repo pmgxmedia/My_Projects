@@ -7,7 +7,7 @@ import { activities } from "@/lib/data";
 import { motion } from "framer-motion";
 import { ArrowRight, Code2, Cpu, Globe, Send, CheckCircle, BookOpen, FileCode, Shield, Zap, Database, GitBranch } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchProjects, createEnquiry } from "@/lib/api";
+import { fetchProjects, createEnquiry, fetchSiteSettings } from "@/lib/api";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,11 @@ export default function Home() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
+  });
+
+  const { data: siteSettings = {} } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: fetchSiteSettings,
   });
 
   const requestMutation = useMutation({
@@ -98,7 +103,11 @@ export default function Home() {
 
   return (
     <Layout>
-      <Hero />
+      <Hero 
+        heroTitle={siteSettings.heroTitle} 
+        heroSubtitle={siteSettings.heroSubtitle}
+        announcementText={siteSettings.announcementText}
+      />
       
       {/* Featured Projects Grid */}
       <section className="py-24 relative">
