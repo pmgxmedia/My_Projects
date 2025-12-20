@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight, Type, Save } from "lucide-react";
+import { BarChart3, Users, MessageSquare, LogOut, Plus, Trash2, Eye, EyeOff, Play, Pencil, ExternalLink, Upload, Download, FileText, FolderCode, X, ImageIcon, Inbox, Mail, Clock, CheckCircle, AlertCircle, MessageCircle, ArrowRight, Type, Save, Video } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllProjects, fetchAllEnquiries, fetchGlobalAnalytics, createProject, updateProject, deleteProject, fetchResumes, createResume, updateResumeVisibility, deleteResume, fetchSiteSettings, updateSiteSetting, updateEnquiryStatus } from "@/lib/api";
@@ -306,6 +306,7 @@ export default function AdminDashboard() {
       isHidden: false,
       projectFilesPath: uploadedProjectFile?.path || null,
       demoUrl: formData.get("demoUrl") as string || null,
+      videoUrl: formData.get("videoUrl") as string || null,
     };
     
     createProjectMutation.mutate(newProject);
@@ -327,6 +328,7 @@ export default function AdminDashboard() {
       technologies: (formData.get("technologies") as string).split(",").map(t => t.trim()).filter(Boolean),
       impact: (formData.get("impact") as string).split("\n").map(t => t.trim()).filter(Boolean),
       demoUrl: formData.get("demoUrl") as string || null,
+      videoUrl: formData.get("videoUrl") as string || null,
     };
 
     if (uploadedPreviewImage) {
@@ -946,6 +948,23 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
+                  {/* Video URL */}
+                  <div className="space-y-2">
+                    <Label htmlFor="videoUrl" className="flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      Video URL (Optional)
+                    </Label>
+                    <Input 
+                      id="videoUrl" 
+                      name="videoUrl" 
+                      placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." 
+                      data-testid="input-project-video-url"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      YouTube, Vimeo, or direct video URL for project walkthrough or demo video.
+                    </p>
+                  </div>
+
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
                     <Button type="submit" disabled={createProjectMutation.isPending} data-testid="button-submit-project">
@@ -1234,6 +1253,24 @@ export default function AdminDashboard() {
                     placeholder="https://your-demo-app.replit.app" 
                     data-testid="input-edit-demo-url"
                   />
+                </div>
+
+                {/* Video URL */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-videoUrl" className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    Video URL
+                  </Label>
+                  <Input 
+                    id="edit-videoUrl" 
+                    name="videoUrl" 
+                    defaultValue={editingProject.videoUrl || ""}
+                    placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." 
+                    data-testid="input-edit-video-url"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    YouTube, Vimeo, or direct video URL for project walkthrough.
+                  </p>
                 </div>
 
                 <DialogFooter>
