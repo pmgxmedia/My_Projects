@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Home() {
   const [conversationDialogOpen, setConversationDialogOpen] = useState(false);
@@ -294,7 +295,20 @@ export default function Home() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="conv-budget">Budget Range</Label>
-                  <Input id="conv-budget" name="budget" placeholder="$10k - $50k" data-testid="input-conv-budget" />
+                  <Select name="budget">
+                    <SelectTrigger data-testid="select-conv-budget">
+                      <SelectValue placeholder="Select budget range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="under-5k">Under $5,000</SelectItem>
+                      <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                      <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
+                      <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
+                      <SelectItem value="50k-100k">$50,000 - $100,000</SelectItem>
+                      <SelectItem value="100k-plus">$100,000+</SelectItem>
+                      <SelectItem value="not-sure">Not sure yet</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
